@@ -1,0 +1,226 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: CodeGuard Website Backups\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-06-21 15:03+0300\n"
+"PO-Revision-Date: 2017-06-21 15:03+0300\n"
+"Last-Translator: \n"
+"Language-Team: The CodeGuard Team <support@codeguard.com>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Poedit 1.8\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;"
+"_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Poedit-Basepath: ../\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: codeguard-plugin.php:44
+msgid ""
+"CodeGuard is optimized to work with PHP 5.2 and above. You are currently "
+"using version"
+msgstr ""
+
+#: codeguard-plugin.php:44
+msgid ""
+"If you experience any issues, please update PHP or connect to CodeGuard "
+"using <a href='https://www.codeguard.com/how-it-works' target='_blank'>FTP/"
+"SFTP and MySQL</a>."
+msgstr ""
+
+#: libs/func.php:48
+msgid "Your site has"
+msgstr ""
+
+#: libs/func.php:48
+msgid "posts"
+msgstr ""
+
+#: libs/func.php:48
+msgid "plugins"
+msgstr ""
+
+#: libs/func.php:50
+msgid "and the total WordPress file content size is"
+msgstr ""
+
+#: libs/func.php:52
+msgid ""
+"We have analyzed your content and believe your site would be better served "
+"by our SFTP + MySQL database backup solution, rather than the plugin. Please "
+"see this support article <a href='https://codeguard.zendesk.com/hc/en-us/"
+"articles/115000581066--How-To-Add-A-Website' target='_blank'>video-tutorial</"
+"a> for adding your website or contact support <a href='https://www.codeguard."
+"com/support/'>https://www.codeguard.com/support/</a> if you need additional "
+"assistance."
+msgstr ""
+
+#: plugin-update-checker/github-checker.php:119
+msgid "There is no changelog available."
+msgstr ""
+
+#: plugin-update-checker/plugin-update-checker.php:776
+msgid "Check for updates"
+msgstr ""
+
+#: plugin-update-checker/plugin-update-checker.php:820
+msgid "This plugin is up to date."
+msgstr ""
+
+#: plugin-update-checker/plugin-update-checker.php:822
+msgid "A new version of this plugin is available."
+msgstr ""
+
+#: plugin-update-checker/plugin-update-checker.php:824
+#, php-format
+msgid "Unknown update checker status \"%s\""
+msgstr ""
+
+#: template/view-backup.php:105 template/view-backup.php:261
+msgid "Restore"
+msgstr ""
+
+#: template/view-backup.php:106 template/view-backup.php:262
+msgid "Delete"
+msgstr ""
+
+#: template/view-backup.php:128
+msgid "Please, add your Amazon credentials"
+msgstr ""
+
+#: template/view-backup.php:129
+msgid "Secret Key"
+msgstr ""
+
+#: template/view-backup.php:129
+msgid "Key ID"
+msgstr ""
+
+#: template/view-backup.php:129
+msgid "Bucket"
+msgstr ""
+
+#: template/view-backup.php:133
+msgid "OK"
+msgstr ""
+
+#: template/view-backup.php:139
+msgid "How to get Amazon S3<br /> Access Key ID & Secret Key?"
+msgstr ""
+
+#: template/view-backup.php:149
+msgid "What is Amazon Bucket?"
+msgstr ""
+
+#: template/view-backup.php:151
+msgid ""
+"Bucket - it's Something like Folder in your PC, but the Bucket stay in the "
+"Cloud of your Cloud provider like Dropbox, Amazon S3 etc.<br />Read "
+"aditional documentation on <a href=http://docs.aws.amazon.com/AmazonS3/"
+"latest/dev/UsingBucket.html target=_blank>Amazon User Guide</a>"
+msgstr ""
+
+#: template/view-backup.php:153
+msgid "How to create an Amazon Bucket?"
+msgstr ""
+
+#: template/view-backup.php:155
+msgid "For creating a bucket using Amazon S3 console, go to"
+msgstr ""
+
+#: template/view-backup.php:155
+msgid "Creating a Bucket"
+msgstr ""
+
+#: template/view-backup.php:155
+msgid "in the <i>Amazon Simple Storage Service Console User Guide</i>"
+msgstr ""
+
+#: template/view-backup.php:167
+msgid ""
+"Automatic backups of your website and database occur every 24 hours. View "
+"more information in the"
+msgstr ""
+
+#: template/view-backup.php:167
+msgid "CodeGuard dashboard"
+msgstr ""
+
+#: template/view-backup.php:173
+msgid ""
+"consecutive errors have occurred during your recent backups. If errors "
+"continue to occur, you may be a good candidate for one of CodeGuard's direct "
+"plans. Please visit the"
+msgstr ""
+
+#: template/view-backup.php:173
+msgid "CodeGuard support center"
+msgstr ""
+
+#: template/view-backup.php:173
+msgid "for more information"
+msgstr ""
+
+#: template/view-backup.php:187
+msgid "Copy and paste your <strong>Unique Access Key</strong> here"
+msgstr ""
+
+#: template/view-backup.php:193
+msgid "Unique Access Key"
+msgstr ""
+
+#: template/view-backup.php:198
+msgid "Save"
+msgstr ""
+
+#: template/view-backup.php:199
+msgid "Need a new Access Key?"
+msgstr ""
+
+#: template/view-backup.php:214
+msgid "A backup has started! This may take a few moments."
+msgstr ""
+
+#: template/view-backup.php:217
+msgid "A restore has started! This may take a few moments."
+msgstr ""
+
+#: template/view-backup.php:221
+msgid "Create Backup"
+msgstr ""
+
+#: template/view-backup.php:237
+msgid "Backup Time"
+msgstr ""
+
+#: template/view-backup.php:238
+msgid "Name"
+msgstr ""
+
+#: template/view-backup.php:239
+msgid "Size"
+msgstr ""
+
+#: template/view-backup.php:241
+msgid "Action"
+msgstr ""
+
+#: template/view-backup.php:275
+msgid "Update Settings"
+msgstr ""
+
+#: template/view-support.php:6
+msgid "Call Support"
+msgstr ""
+
+#: template/view-support.php:6
+msgid "Contact"
+msgstr ""
+
+#: template/view-support.php:6
+msgid "CodeGuard Support"
+msgstr ""

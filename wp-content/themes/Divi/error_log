@@ -1,0 +1,11 @@
+[19-Sep-2017 03:18:22 America/Chicago] PHP Fatal error:  Call to undefined function get_header() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/404.php on line 1
+[24-Sep-2017 00:14:36 America/Chicago] PHP Fatal error:  Call to undefined function get_header() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/404.php on line 1
+[13-Oct-2017 11:38:03 America/Chicago] PHP Fatal error:  Call to undefined function get_header() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/404.php on line 1
+[14-Oct-2017 06:31:17 America/Chicago] PHP Fatal error:  Call to undefined function language_attributes() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/header.php on line 3
+[16-Oct-2017 06:10:32 America/Chicago] PHP Fatal error:  Call to undefined function language_attributes() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/header.php on line 3
+[17-Oct-2017 20:50:09 America/Chicago] PHP Fatal error:  Call to undefined function get_header() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/index.php on line 1
+[19-Oct-2017 16:49:01 America/Chicago] PHP Fatal error:  Call to undefined function language_attributes() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/header.php on line 3
+[19-Oct-2017 16:49:56 America/Chicago] PHP Fatal error:  Call to undefined function language_attributes() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/header.php on line 3
+[22-Oct-2017 06:21:55 America/Chicago] PHP Fatal error:  Call to undefined function get_header() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/404.php on line 1
+[24-Oct-2017 10:45:24 America/Chicago] PHP Fatal error:  Call to undefined function language_attributes() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/header.php on line 3
+[08-Dec-2017 02:32:50 America/Chicago] PHP Fatal error:  Call to undefined function get_header() in /home3/mauibeats/public_html/remixtheearth.com/wp-content/themes/Divi/404.php on line 1

@@ -1,0 +1,94 @@
+2017/12/25 05:44:08 6800000 memory found.
+2017/12/25 05:44:08 Starting backup process
+2017/12/25 05:44:08 Connecting to database
+2017/12/25 05:44:08 Extracting database contents
+2017/12/25 05:44:08 Extracting contents from table: wp_amz_assets
+2017/12/25 05:44:08 Extracting contents from table: wp_amz_cross_sell
+2017/12/25 05:44:08 Extracting contents from table: wp_amz_products
+2017/12/25 05:44:08 Extracting contents from table: wp_amz_queue
+2017/12/25 05:44:08 Extracting contents from table: wp_amz_report_log
+2017/12/25 05:44:08 Extracting contents from table: wp_amz_search
+2017/12/25 05:44:08 Extracting contents from table: wp_commentmeta
+2017/12/25 05:44:08 Extracting contents from table: wp_comments
+2017/12/25 05:44:08 Extracting contents from table: wp_links
+2017/12/25 05:44:08 Extracting contents from table: wp_options
+2017/12/25 05:44:08 Extracting contents from table: wp_postmeta
+2017/12/25 05:44:08 Extracting contents from table: wp_posts
+2017/12/25 05:44:08 Extracting contents from table: wp_term_relationships
+2017/12/25 05:44:08 Extracting contents from table: wp_term_taxonomy
+2017/12/25 05:44:08 Extracting contents from table: wp_termmeta
+2017/12/25 05:44:08 Extracting contents from table: wp_terms
+2017/12/25 05:44:08 Extracting contents from table: wp_usermeta
+2017/12/25 05:44:08 Extracting contents from table: wp_users
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_api_keys
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_attribute_taxonomies
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_downloadable_product_permissions
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_log
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_order_itemmeta
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_order_items
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_payment_tokenmeta
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_payment_tokens
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_sessions
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_shipping_zone_locations
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_shipping_zone_methods
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_shipping_zones
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_tax_rate_locations
+2017/12/25 05:44:08 Extracting contents from table: wp_woocommerce_tax_rates
+2017/12/25 05:44:08 Extracting contents from table: wp_yoast_seo_links
+2017/12/25 05:44:08 Extracting contents from table: wp_yoast_seo_meta
+2017/12/25 05:44:08 Finished extracting database contents
+2017/12/25 05:44:08 Database backup successfully created (11.28 Mb): wp-content/codeguard_backups/remixtheearth_com-full-2017_12_25_05_44/mysqldump.sql
+2017/12/25 05:44:08 2017/12/25 05:44:08 Start get file list
+2017/12/25 05:44:10 2017/12/25 05:44:10 End get file list
+2017/12/25 05:44:10 Adding files to backup
+2017/12/25 05:44:10 Creating part: remixtheearth_com-full-2017_12_25_05_44-1.zip
+2017/12/25 05:44:13 Creating part: remixtheearth_com-full-2017_12_25_05_44-2.zip
+2017/12/25 05:44:15 Creating part: remixtheearth_com-full-2017_12_25_05_44-3.zip
+2017/12/25 05:44:16 Creating part: remixtheearth_com-full-2017_12_25_05_44-4.zip
+2017/12/25 05:44:17 Creating part: remixtheearth_com-full-2017_12_25_05_44-5.zip
+2017/12/25 05:44:18 Creating part: remixtheearth_com-full-2017_12_25_05_44-6.zip
+2017/12/25 05:44:20 Creating part: remixtheearth_com-full-2017_12_25_05_44-7.zip
+2017/12/25 05:44:21 Creating part: remixtheearth_com-full-2017_12_25_05_44-8.zip
+2017/12/25 05:44:22 Creating part: remixtheearth_com-full-2017_12_25_05_44-9.zip
+2017/12/25 05:44:23 Creating part: remixtheearth_com-full-2017_12_25_05_44-10.zip
+2017/12/25 05:44:24 Creating part: remixtheearth_com-full-2017_12_25_05_44-11.zip
+2017/12/25 05:44:25 Creating part: remixtheearth_com-full-2017_12_25_05_44-12.zip
+2017/12/25 05:44:26 Creating part: remixtheearth_com-full-2017_12_25_05_44-13.zip
+2017/12/25 05:44:27 Creating part: remixtheearth_com-full-2017_12_25_05_44-14.zip
+2017/12/25 05:44:28 Creating part: remixtheearth_com-full-2017_12_25_05_44-15.zip
+2017/12/25 05:44:30 Creating part: remixtheearth_com-full-2017_12_25_05_44-16.zip
+2017/12/25 05:44:31 Creating part: remixtheearth_com-full-2017_12_25_05_44-17.zip
+2017/12/25 05:44:32 Creating part: remixtheearth_com-full-2017_12_25_05_44-18.zip
+2017/12/25 05:44:33 Creating part: remixtheearth_com-full-2017_12_25_05_44-19.zip
+2017/12/25 05:44:35 Creating part: remixtheearth_com-full-2017_12_25_05_44-20.zip
+2017/12/25 05:44:36 Creating part: remixtheearth_com-full-2017_12_25_05_44-21.zip
+2017/12/25 05:44:38 Creating part: remixtheearth_com-full-2017_12_25_05_44-22.zip
+2017/12/25 05:44:40 Creating part: remixtheearth_com-full-2017_12_25_05_44-23.zip
+2017/12/25 05:44:42 Creating part: remixtheearth_com-full-2017_12_25_05_44-24.zip
+2017/12/25 05:44:44 Creating part: remixtheearth_com-full-2017_12_25_05_44-25.zip
+2017/12/25 05:44:45 Creating part: remixtheearth_com-full-2017_12_25_05_44-26.zip
+2017/12/25 05:44:46 Creating part: remixtheearth_com-full-2017_12_25_05_44-27.zip
+2017/12/25 05:44:48 Creating part: remixtheearth_com-full-2017_12_25_05_44-28.zip
+2017/12/25 05:44:49 Creating part: remixtheearth_com-full-2017_12_25_05_44-29.zip
+2017/12/25 05:44:50 Creating part: remixtheearth_com-full-2017_12_25_05_44-30.zip
+2017/12/25 05:44:51 Creating part: remixtheearth_com-full-2017_12_25_05_44-31.zip
+2017/12/25 05:44:52 Creating part: remixtheearth_com-full-2017_12_25_05_44-32.zip
+2017/12/25 05:44:53 Creating part: remixtheearth_com-full-2017_12_25_05_44-33.zip
+2017/12/25 05:44:54 Creating part: remixtheearth_com-full-2017_12_25_05_44-34.zip
+2017/12/25 05:44:56 Creating part: remixtheearth_com-full-2017_12_25_05_44-35.zip
+2017/12/25 05:44:58 Creating part: remixtheearth_com-full-2017_12_25_05_44-36.zip
+2017/12/25 05:45:00 Creating part: remixtheearth_com-full-2017_12_25_05_44-37.zip
+2017/12/25 05:45:04 Creating part: remixtheearth_com-full-2017_12_25_05_44-38.zip
+2017/12/25 05:45:07 Creating part: remixtheearth_com-full-2017_12_25_05_44-39.zip
+2017/12/25 05:45:09 Creating part: remixtheearth_com-full-2017_12_25_05_44-40.zip
+2017/12/25 05:45:13 Creating part: remixtheearth_com-full-2017_12_25_05_44-41.zip
+2017/12/25 05:45:16 Creating part: remixtheearth_com-full-2017_12_25_05_44-42.zip
+2017/12/25 05:45:31 Creating part: remixtheearth_com-full-2017_12_25_05_44-43.zip
+2017/12/25 05:45:45 Creating part: remixtheearth_com-full-2017_12_25_05_44-44.zip
+2017/12/25 05:45:46 Creating part: remixtheearth_com-full-2017_12_25_05_44-45.zip
+2017/12/25 05:45:50 Creating part: remixtheearth_com-full-2017_12_25_05_44-46.zip
+2017/12/25 05:45:51 Creating part: remixtheearth_com-full-2017_12_25_05_44-47.zip
+2017/12/25 05:45:53 Creating part: remixtheearth_com-full-2017_12_25_05_44-48.zip
+2017/12/25 05:45:54 Creating part: remixtheearth_com-full-2017_12_25_05_44-49.zip
+2017/12/25 05:45:55 Removing temporary database dump file
+2017/12/25 05:45:55 Finished creating backup (624.43 Mb)
