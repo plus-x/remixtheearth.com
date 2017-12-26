@@ -291,8 +291,8 @@ class UpdraftPlus {
 		// Already converted?
 		if (isset($options['version'])) return $options;
 		
-		// Cryptographic randomness not required. The prefix helps avoid potential for type-juggling issues.
-		$uuid = 's-'.md5(rand().uniqid().microtime(true));
+		// Generate an instance id
+		$uuid = $this->generate_instance_id();
 		
 		$new_setting = array(
 			'version' => 1,
@@ -303,6 +303,18 @@ class UpdraftPlus {
 		$new_setting['settings'] = array($uuid => $options);
 
 		return $new_setting;
+	}
+
+	/**
+	 * This method will return a random instance id string
+	 *
+	 * @return String - a random instance id
+	 */
+	public function generate_instance_id() {
+		// Cryptographic randomness not required. The prefix helps avoid potential for type-juggling issues.
+		$uuid = 's-'.md5(rand().uniqid().microtime(true));
+
+		return $uuid;
 	}
 
 	/**
@@ -455,11 +467,35 @@ class UpdraftPlus {
 				$_GET['page'] = 'updraftplus';
 				$_REQUEST['page'] = 'updraftplus';
 				$method = $matches[1];
-				include_once(UPDRAFTPLUS_DIR.'/methods/'.$method.'.php');
-				$call_class = "UpdraftPlus_BackupModule_".$method;
 				$call_method = "action_".$matches[2];
-				$backup_obj = new $call_class;
+				$storage_objects_and_ids = $this->get_storage_objects_and_ids(array($method));
+
+				$instance_id = isset($_GET['updraftplus_instance']) ? $_GET['updraftplus_instance'] : '';
+		
+				if ("POST" == $_SERVER['REQUEST_METHOD'] && isset($_POST['state'])) {
+					$state = urldecode($_POST['state']);
+				} elseif (isset($_GET['state'])) {
+					$state = $_GET['state'];
+				}
+
+				// If we don't have an instance_id but the state is set then we are coming back to finish the auth and should extract the instance_id from the state
+				if ('' == $instance_id && isset($state) && false !== strpos($state, ':')) {
+					$parts = explode(':', $state);
+					$instance_id = $parts[1];
+				}
+				
+				if (isset($storage_objects_and_ids[$method]['instance_settings'][$instance_id])) {
+					$opts = $storage_objects_and_ids[$method]['instance_settings'][$instance_id];
+					$backup_obj = $storage_objects_and_ids[$method]['object'];
+					$backup_obj->set_options($opts, false, $instance_id);
+				} else {
+					include_once(UPDRAFTPLUS_DIR.'/methods/'.$method.'.php');
+					$call_class = "UpdraftPlus_BackupModule_".$method;
+					$backup_obj = new $call_class;
+				}
+				
 				$this->register_wp_http_option_hooks();
+				
 				try {
 					if (method_exists($backup_obj, $call_method)) {
 						call_user_func(array($backup_obj, $call_method));
@@ -594,6 +630,7 @@ class UpdraftPlus {
 	 */
 	public function updraftplus_remotecontrol_command_classes($command_classes) {
 		if (is_array($command_classes)) $command_classes['updraftplus'] = 'UpdraftCentral_UpdraftPlus_Commands';
+		if (is_array($command_classes)) $command_classes['updraftvault'] = 'UpdraftCentral_UpdraftVault_Commands';
 		return $command_classes;
 	}
 	
@@ -605,6 +642,8 @@ class UpdraftPlus {
 	public function updraftcentral_command_class_wanted($command_php_class) {
 		if ('UpdraftCentral_UpdraftPlus_Commands' == $command_php_class) {
 			include_once(UPDRAFTPLUS_DIR.'/includes/class-updraftcentral-updraftplus-commands.php');
+		} elseif ('UpdraftCentral_UpdraftVault_Commands' == $command_php_class) {
+			include_once(UPDRAFTPLUS_DIR.'/includes/updraftvault.php');
 		}
 	}
 	
@@ -647,7 +686,7 @@ class UpdraftPlus {
 		$files_deleted = 0;
 		if ($handle = opendir($updraft_dir)) {
 			while (false !== ($entry = readdir($handle))) {
-				$manifest_match = preg_match("/^udmanifest$match\.json$/i", $entry);
+				$manifest_match = preg_match("/updraftplus-manifest.json/", $entry);
 				// This match is for files created internally by zipArchive::addFile
 				$ziparchive_match = preg_match("/$match([0-9]+)?\.zip\.tmp\.([A-Za-z0-9]){6}?$/i", $entry);
 				// zi followed by 6 characters is the pattern used by /usr/bin/zip on Linux systems. It's safe to check for, as we have nothing else that's going to match that pattern.
@@ -902,7 +941,14 @@ class UpdraftPlus {
 		if (defined('UPDRAFTPLUS_BROWSERLOG') && UPDRAFTPLUS_BROWSERLOG) echo htmlentities($line)."<br>\n";
 	}
 
-	public function log_removewarning($uniq_id) {
+	/**
+	 * Remove any logged warnings with the specified identifier. (The use case for this is that you can warn of something that may be about to happen (with a probably crash if it does), and then remove the warning if it did not happen).
+	 *
+	 * @see self::log()
+	 *
+	 * @param String $uniq_id - the identifier, previously passed to self::log()
+	 */
+	public function log_remove_warning($uniq_id) {
 		$warnings = $this->jobdata_get('warnings');
 		if (!is_array($warnings)) $warnings = array();
 		unset($warnings[$uniq_id]);
@@ -945,6 +991,12 @@ class UpdraftPlus {
 		return false;
 	}
 
+	/**
+	 * Get the maximum packet size on the WPDB MySQL connection, in bytes, after attempting to raise it to 32MB if it appeared to be lower.
+	 * A default value equal to 1MB is returned if the true value could not be found - it has been found reasonable to assume that at least this is available.
+	 *
+	 * @return Integer
+	 */
 	public function get_max_packet_size() {
 		global $wpdb;
 		$mp = (int) $wpdb->get_var("SELECT @@session.max_allowed_packet");
@@ -1160,7 +1212,7 @@ class UpdraftPlus {
 			if ($ret) {
 				$this->log("$logname upload: success");
 				// UpdraftPlus_RemoteStorage_Addons_Base calls this itself
-				if (!is_a($caller, 'UpdraftPlus_RemoteStorage_Addons_Base')) $this->uploaded_file($file);
+				if (!is_a($caller, 'UpdraftPlus_RemoteStorage_Addons_Base_v2')) $this->uploaded_file($file);
 			}
 
 			return $ret;
@@ -1677,7 +1729,7 @@ class UpdraftPlus {
 				'type' => $matches[4],
 				'index' => (empty($matches[5]) ? 0 : $matches[5]-1),
 				'extension' => $matches[6]
-);
+			);
 		} else {
 			return false;
 		}
@@ -2282,7 +2334,7 @@ class UpdraftPlus {
 		do_action('updraft_final_backup_history', $our_files);
 
 		// We finished; so, low memory was not a problem
-		$this->log_removewarning('lowram');
+		$this->log_remove_warning('lowram');
 
 		if (0 == count($undone_files)) {
 			$this->log("Resume backup ($bnonce, $resumption_no): finish run");
@@ -2995,7 +3047,8 @@ class UpdraftPlus {
 		$db_connected = $this->check_db_connection(false, true, true);
 
 		$service = empty($updraftplus_backup->current_service) ? '' : $updraftplus_backup->current_service;
-		$shash = $service.'-'.md5($file);
+		$instance_id = empty($updraftplus_backup->current_instance) ? '' : $updraftplus_backup->current_instance;
+		$shash = $service.(('' == $service) ? '' : '-').$instance_id.(('' == $instance_id) ? '' : '-').md5($file);
 
 		$this->jobdata_set("uploaded_".$shash, 'yes');
 	
@@ -3032,13 +3085,14 @@ class UpdraftPlus {
 	/**
 	 * Return whether a particular file has been uploaded to a particular remote service
 	 *
-	 * @param String $file	  - the filename (basename)
-	 * @param String $service - the service identifier; or none, to indicate all services
+	 * @param String $file	      - the filename (basename)
+	 * @param String $service     - the service identifier; or none, to indicate all services
+	 * @param String $instance_id - the instance identifier
 	 *
 	 * @return Boolean - the result
 	 */
-	public function is_uploaded($file, $service = '') {
-		$hash = $service.(('' == $service) ? '' : '-').md5($file);
+	public function is_uploaded($file, $service = '', $instance_id = '') {
+		$hash = $service.(('' == $service) ? '' : '-').$instance_id.(('' == $instance_id) ? '' : '-').md5($file);
 		return ($this->jobdata_get("uploaded_$hash") === "yes") ? true : false;
 	}
 
@@ -3360,9 +3414,35 @@ class UpdraftPlus {
 	}
 	
 	/**
+	 * Instantiate a remote storage object. If one of the same type has previously been fetched, then it will be returned.
+	 *
+	 * @param String $method - the storage method (e.g. 'dropbox', 's3', etc.)
+	 *
+	 * @return Object|WP_Error - an instance of UpdraftPlus_BackupModule, or anerror
+	 */
+	public function get_storage_object($method) {
+	
+		static $objects = array();
+	
+		if (!empty($objects[$method])) return $objects[$method];
+	
+		$method_class = 'UpdraftPlus_BackupModule_'.$method;
+		
+		if (!class_exists($method_class)) include_once UPDRAFTPLUS_DIR.'/methods/'.$method.'.php';
+		
+		if (!class_exists($method_class)) return WP_Error('no_such_storage_class', "The specified storage method ($method) was not found");
+		
+		$objects[$method] = new $method_class;
+		
+		return $objects[$method];
+	}
+	
+	/**
 	 * This method will return an array of remote storage objects and instance settings of the currently connected remote storage services.
 	 *
-	 * @param  Array $services - an list of service identifiers (e.g. ['dropbox', 's3'])
+	 * @param Array $services - an list of service identifiers (e.g. ['dropbox', 's3'])
+	 *
+	 * @uses self::get_storage_object()
 	 *
 	 * @return Array					- returns an array, with a key equal to each member of the $services list passed in. The corresponding value is then an array with keys 'object', 'instance_settings'. The value for 'object' is an UpdraftPlus_BackupModule instance. The value for 'instance_settings' is an array keyed by associated instance IDs, with the values being the associated settings for the instance ID.
 	 */
@@ -3374,14 +3454,10 @@ class UpdraftPlus {
 
 			if ('none' === $method || '' == $method) continue;
 		
-			$call_method = 'UpdraftPlus_BackupModule_'.$method;
+			$remote_storage = $this->get_storage_object($method);
+		
+			if (is_a($remote_storage, 'UpdraftPlus_BackupModule')) {
 			
-			if (!class_exists($call_method)) include_once UPDRAFTPLUS_DIR.'/methods/'.$method.'.php';
-			
-			if (class_exists($call_method)) {
-			
-				$remote_storage = new $call_method;
-				
 				if (!empty($method_objects[$method])) $storage_objects_and_ids[$method] = array();
 				
 				$storage_objects_and_ids[$method]['object'] = $remote_storage;
@@ -3400,13 +3476,17 @@ class UpdraftPlus {
 					}
 
 					if (empty($settings['settings'])) {
-						// See: https://wordpress.org/support/topic/cannot-setup-connectionauthenticate-with-dropbox/
-						error_log("UpdraftPlus: Warning: settings for $method are empty. A dummy field is usually needed so that something is saved.");
-						
+					
 						// Try to recover by getting a default set of options for display
 						if (is_callable(array($remote_storage, 'get_default_options'))) {
 							$uuid = 's-'.md5(rand().uniqid().microtime(true));
 							$settings['settings'] = array($uuid => $remote_storage->get_default_options());
+						}
+						
+						// See: https://wordpress.org/support/topic/cannot-setup-connectionauthenticate-with-dropbox/
+						if (empty($settings['settings'])) {
+							// This can get sent to the browser, and break the page, if the user has configured that. However, it should now (1.13.6+) be impossible for this condition to occur, now that we only log it after getting some default options.
+							error_log("UpdraftPlus: Warning: settings for $method are empty. A dummy field is usually needed so that something is saved.");
 						}
 						
 					}
@@ -3422,12 +3502,65 @@ class UpdraftPlus {
 				}
 
 			} else {
-				error_log("UpdraftPlus: no such storage class: $call_method");
+				error_log("UpdraftPlus: storage method not found: $method");
 			}
 		}
 
 		return $storage_objects_and_ids;
 		
+	}
+	
+	/**
+	 * This method will return an array of remote storage options and storage_templates.
+	 *
+	 * @return Array - returns an array which consists of storage options and storage_templates multidimensional array
+	 */
+	public function get_remote_storage_options_and_templates() {
+
+		$storage_objects_and_ids = $this->get_storage_objects_and_ids(array_keys($this->backup_methods));
+		$options = array();
+		$templates = array();
+
+		foreach ($storage_objects_and_ids as $method => $method_info) {
+
+			$object = $method_info['object'];
+
+			if (!$object->supports_feature('multi_options')) {
+				ob_start();
+				do_action('updraftplus_config_print_before_storage', $method, null);
+				$object->config_print();
+				$templates[$method] = ob_get_clean();
+			} else {
+				$templates[$method] = $object->get_template();
+			}
+
+			if (isset($method_info['instance_settings'])) {
+				// Add the methods default settings so that we can add new instances
+				$method_info['instance_settings']['default'] = $object->get_default_options();
+
+				foreach ($method_info['instance_settings'] as $instance_id => $instance_options) {
+
+					$opts_without_transform = $instance_options;
+
+					if ($object->supports_feature('multi_options')) {
+						$opts_without_transform['instance_id'] = $instance_id;
+					}
+
+					$opts = $object->transform_options_for_template($opts_without_transform);
+
+					foreach ($object->filter_frontend_settings_keys() as $filter_frontend_settings_key) {
+						unset($opts[$filter_frontend_settings_key]);
+					}
+
+					$options[$method][$instance_id] = $opts;
+				}
+			}
+		}
+
+		return array(
+			'options' => $options,
+			'templates' => $templates,
+		);
 	}
 	
 	/**
@@ -3454,13 +3587,15 @@ class UpdraftPlus {
 	/**
 	 * Replace last occurence
 	 *
-	 * @param  string $search
-	 * @param  string $replace
-	 * @param  string $subject
+	 * @param  string  $search         The value being searched for, otherwise known as the needle
+	 * @param  string  $replace        The replacement value that replaces found search values
+	 * @param  string  $subject        The string or array being searched and replaced on, otherwise known as the haystack
+	 * @param  boolean $case_sensitive Whether the replacement should be case sensitive or not
+	 *
 	 * @return string
 	 */
-	public function str_lreplace($search, $replace, $subject) {
-		$pos = strrpos($subject, $search);
+	public function str_lreplace($search, $replace, $subject, $case_sensitive = true) {
+		$pos = $case_sensitive ? strrpos($subject, $search) : strripos($subject, $search);
 		if (false !== $pos) $subject = substr_replace($subject, $replace, $pos, strlen($search));
 		return $subject;
 	}
@@ -3575,322 +3710,22 @@ class UpdraftPlus {
 	/**
 	 * Acts as a WordPress options filter
 	 *
-	 * @param  Array $onedrive - An array of OneDrive options
-	 * @return Array - the returned array can either be the set of updated OneDrive settings or a WordPress error array
+	 * @param Array	 $options	  - An array of options
+	 * @param String $option_name - The option name
+	 *
+	 * @return Array - the returned array can either be the set of updated options or a WordPress error array
 	 */
-	public function onedrive_checkchange($onedrive) {
+	public function storage_options_filter($options, $option_name) {
+		if ('updraft_' !== substr($option_name, 0, 8)) return $options;
+		$method = substr($option_name, 8);
+		
+		$storage = $this->get_storage_object($method);
+		
+		if (!is_a($storage, 'UpdraftPlus_BackupModule') || !is_callable(array($storage, 'options_filter'))) return $options;
 
-		// Get the current options (and possibly update them to the new format)
-		$opts = $this->update_remote_storage_options_format('onedrive');
-
-		if (is_wp_error($opts)) {
-			if ('recursion' !== $opts->get_error_code()) {
-				$msg = "OneDrive (".$opts->get_error_code()."): ".$opts->get_error_message();
-				$this->log($msg);
-				error_log("UpdraftPlus: $msg");
-			}
-			// The saved options had a problem; so, return the new ones
-			return $onedrive;
-		}
-
-		if (!is_array($onedrive)) return $opts;
-
-		// Remove instances that no longer exist
-		foreach ($opts['settings'] as $instance_id => $storage_options) {
-			if (!isset($onedrive['settings'][$instance_id])) unset($opts['settings'][$instance_id]);
-		}
-
-		foreach ($onedrive['settings'] as $instance_id => $storage_options) {
-			$old_client_id = empty($opts['settings'][$instance_id]['clientid']) ? '' : $opts['settings'][$instance_id]['clientid'];
-			$now_client_id = empty($storage_options['clientid']) ? '' : $storage_options['clientid'];
-			if (!empty($opts['settings'][$instance_id]['refresh_token']) && $old_client_id != $now_client_id) {
-				unset($opts['settings'][$instance_id]['refresh_token']);
-				unset($opts['settings'][$instance_id]['tokensecret']);
-				unset($opts['settings'][$instance_id]['ownername']);
-			}
-			
-			foreach ($storage_options as $key => $value) {
-				if ('folder' == $key) $value = trim(str_replace('\\', '/', $value), '/');
-				$opts['settings'][$instance_id][$key] = ('clientid' == $key || 'secret' == $key) ? trim($value) : $value;
-			}
-		}
-		return $opts;
+		return call_user_func(array($storage, 'options_filter'), $options);
 	}
 	
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param  Array $azure an array of Azure options
-	 * @return Array - the returned array can either be the set of updated Azure settings or a WordPress error array
-	 */
-	public function azure_checkchange($azure) {
-		// Get the current options (and possibly update them to the new format)
-		$opts = $this->update_remote_storage_options_format('azure');
-		
-		if (is_wp_error($opts)) {
-			if ('recursion' !== $opts->get_error_code()) {
-				$msg = "Azure (".$opts->get_error_code()."): ".$opts->get_error_message();
-				$this->log($msg);
-				error_log("UpdraftPlus: $msg");
-			}
-			// The saved options had a problem; so, return the new ones
-			return $azure;
-		}
-
-		if (!is_array($azure)) return $opts;
-
-		// Remove instances that no longer exist
-		foreach ($opts['settings'] as $instance_id => $storage_options) {
-			if (!isset($azure['settings'][$instance_id])) unset($opts['settings'][$instance_id]);
-		}
-		foreach ($azure['settings'] as $instance_id => $storage_options) {
-			foreach ($storage_options as $key => $value) {
-				if ('folder' == $key) $value = trim(str_replace('\\', '/', $value), '/');
-				// Only lower-case containers are permitted - enforce this
-				if ('container' == $key) $value = strtolower($value);
-				$opts['settings'][$instance_id][$key] = ('key' == $key || 'account_name' == $key) ? trim($value) : $value;
-				// Convert one likely misunderstanding of the format to enter the account name in
-				if ('account_name' == $key && preg_match('#^https?://(.*)\.blob\.core\.windows#i', $opts['settings'][$instance_id]['account_name'], $matches)) {
-					$opts['settings'][$instance_id]['account_name'] = $matches[1];
-				}
-			}
-		}
-		return $opts;
-	}
-
-
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param  Array $google - An array of Google Drive options
-	 * @return Array - the returned array can either be the set of updated Google Drive settings or a WordPress error array
-	 */
-	public function googledrive_checkchange($google) {
-
-		// Get the current options (and possibly update them to the new format)
-		$opts = $this->update_remote_storage_options_format('googledrive');
-		
-		if (is_wp_error($opts)) {
-			if ('recursion' !== $opts->get_error_code()) {
-				$msg = "Google Drive (".$opts->get_error_code()."): ".$opts->get_error_message();
-				$this->log($msg);
-				error_log("UpdraftPlus: $msg");
-			}
-			// The saved options had a problem; so, return the new ones
-			return $google;
-		}
-		// $opts = UpdraftPlus_Options::get_updraft_option('updraft_googledrive');
-		if (!is_array($google)) return $opts;
-
-		// Remove instances that no longer exist
-		foreach ($opts['settings'] as $instance_id => $storage_options) {
-			if (!isset($google['settings'][$instance_id])) unset($opts['settings'][$instance_id]);
-		}
-
-		foreach ($google['settings'] as $instance_id => $storage_options) {
-			if (empty($opts['settings'][$instance_id]['user_id'])) {
-				$old_client_id = (empty($opts['settings'][$instance_id]['clientid'])) ? '' : $opts['settings'][$instance_id]['clientid'];
-				if (!empty($opts['settings'][$instance_id]['token']) && $old_client_id != $storage_options['clientid']) {
-					include_once(UPDRAFTPLUS_DIR.'/methods/googledrive.php');
-					$this->register_wp_http_option_hooks();
-					$googledrive = new UpdraftPlus_BackupModule_googledrive();
-					$googledrive->gdrive_auth_revoke(false);
-					$this->register_wp_http_option_hooks(false);
-					$opts['settings'][$instance_id]['token'] = '';
-					unset($opts['settings'][$instance_id]['ownername']);
-				}
-			}
-
-			foreach ($storage_options as $key => $value) {
-				// Trim spaces - I got support requests from users who didn't spot the spaces they introduced when copy/pasting
-				$opts['settings'][$instance_id][$key] = ('clientid' == $key || 'secret' == $key) ? trim($value) : $value;
-			}
-			if (isset($opts['settings'][$instance_id]['folder'])) {
-				$opts['settings'][$instance_id]['folder'] = apply_filters('updraftplus_options_googledrive_foldername', 'UpdraftPlus', $opts['settings'][$instance_id]['folder']);
-				unset($opts['settings'][$instance_id]['parentid']);
-			}
-		}
-		return $opts;
-	}
-
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param  Array $google - An array of Google Cloud options
-	 * @return Array - the returned array can either be the set of updated Google Cloud settings or a WordPress error array
-	 */
-	public function googlecloud_checkchange($google) {
-
-		// Get the current options (and possibly update them to the new format)
-		$opts = $this->update_remote_storage_options_format('googlecloud');
-		
-		if (is_wp_error($opts)) {
-			if ('recursion' !== $opts->get_error_code()) {
-				$msg = "Google Cloud (".$opts->get_error_code()."): ".$opts->get_error_message();
-				$this->log($msg);
-				error_log("UpdraftPlus: $msg");
-			}
-			// The saved options had a problem; so, return the new ones
-			return $google;
-		}
-
-		if (!is_array($google)) return $opts;
-
-		// Remove instances that no longer exist
-		foreach ($opts['settings'] as $instance_id => $storage_options) {
-			if (!isset($google['settings'][$instance_id])) unset($opts['settings'][$instance_id]);
-		}
-		
-		foreach ($google['settings'] as $instance_id => $storage_options) {
-			$old_token = (empty($opts['settings'][$instance_id]['token'])) ? '' : $opts['settings'][$instance_id]['token'];
-			$old_client_id = (empty($opts['settings'][$instance_id]['clientid'])) ? '' : $opts['settings'][$instance_id]['clientid'];
-			$old_client_secret = (empty($opts['settings'][$instance_id]['secret'])) ? '' : $opts['settings'][$instance_id]['secret'];
-			
-			if ($old_client_id == $google['settings'][$instance_id]['clientid'] && $old_client_secret == $google['settings'][$instance_id]['secret']) {
-				$google['settings'][$instance_id]['token'] = $old_token;
-			}
-			if (!empty($opts['settings'][$instance_id]['token']) && $old_client_id != $google['settings'][$instance_id]['clientid']) {
-				include_once(UPDRAFTPLUS_DIR.'/methods/googlecloud.php');
-				$this->register_wp_http_option_hooks();
-				$googlecloud = new UpdraftPlus_BackupModule_googlecloud();
-				$googlecloud->gcloud_auth_revoke(false);
-				$this->register_wp_http_option_hooks(false);
-				$opts['settings'][$instance_id]['token'] = '';
-				unset($opts['settings'][$instance_id]['ownername']);
-			}
-			foreach ($storage_options as $key => $value) {
-				// Trim spaces - I got support requests from users who didn't spot the spaces they introduced when copy/pasting
-				$opts['settings'][$instance_id][$key] = ('clientid' == $key || 'secret' == $key) ? trim($value) : $value;
-				if ('bucket_location' == $key) $opts['settings'][$instance_id][$key] = trim(strtolower($value));
-			}
-		}
-		
-		return $opts;
-	}
-
-	/**
-	 * WordPress options filter, sanitising the FTP options saved from the options page
-	 *
-	 * @param Array $settings - the options, prior to sanitisation
-	 *
-	 * @return Array - the sanitised options for saving
-	 */
-	public function ftp_sanitise($settings) {
-		if (is_array($settings) && !empty($settings['version']) && !empty($settings['settings'])) {
-			foreach ($settings['settings'] as $instance_id => $instance_settings) {
-				if (!empty($instance_settings['host']) && preg_match('#ftp(es|s)?://(.*)#i', $instance_settings['host'], $matches)) {
-					$settings['settings'][$instance_id]['host'] = rtrim($matches[2], "/ \t\n\r\0\x0B");
-				}
-				if (isset($instance_settings['pass'])) {
-					$settings['settings'][$instance_id]['pass'] = trim($instance_settings['pass'], "\n\r\0\x0B");
-				}
-			}
-		}
-		return $settings;
-	}
-
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param Array $settings - pre-filtered settings
-	 *
-	 * @return Array filtered settings
-	 */
-	public function backblaze_sanitise($settings) {
-		if (is_array($settings) && !empty($settings['version']) && !empty($settings['settings'])) {
-			foreach ($settings['settings'] as $instance_id => $instance_settings) {
-				if (!empty($instance_settings['backup_path'])) {
-					$settings['settings'][$instance_id]['backup_path'] = trim($instance_settings['backup_path'], "/ \t\n\r\0\x0B");
-				}
-			}
-		}
-		return $settings;
-	}
-
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param Array $settings - pre-filtered settings
-	 *
-	 * @return Array filtered settings
-	 */
-	public function s3_sanitise($settings) {
-		if (is_array($settings) && !empty($settings['version']) && !empty($settings['settings'])) {
-			foreach ($settings['settings'] as $instance_id => $instance_settings) {
-				if (!empty($instance_settings['path'])) {
-					$settings['settings'][$instance_id]['path'] = trim($instance_settings['path'], "/ \t\n\r\0\x0B");
-				}
-			}
-		}
-		return $settings;
-	}
-
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param  Array $dropbox - An array of Dropbox options
-	 * @return Array - the returned array can either be the set of updated Dropbox settings or a WordPress error array
-	 */
-	public function dropbox_checkchange($dropbox) {
-
-		// Get the current options (and possibly update them to the new format)
-		$opts = $this->update_remote_storage_options_format('dropbox');
-		
-		if (is_wp_error($opts)) {
-			if ('recursion' !== $opts->get_error_code()) {
-				$msg = "Dropbox (".$opts->get_error_code()."): ".$opts->get_error_message();
-				$this->log($msg);
-				error_log("UpdraftPlus: $msg");
-			}
-			// The saved options had a problem; so, return the new ones
-			return $dropbox;
-		}
-		
-		// If the input is not as expected, then return the current options
-		if (!is_array($dropbox)) return $opts;
-		
-		// Remove instances that no longer exist
-		foreach ($opts['settings'] as $instance_id => $storage_options) {
-			if (!isset($dropbox['settings'][$instance_id])) unset($opts['settings'][$instance_id]);
-		}
-		
-		// Dropbox has a special case where the settings could be empty so we should check for this before
-		if (!empty($dropbox['settings'])) {
-		
-			foreach ($dropbox['settings'] as $instance_id => $storage_options) {
-				if (!empty($opts['settings'][$instance_id]['tk_access_token'])) {
-				
-					$current_app_key = empty($opts['settings'][$instance_id]['appkey']) ? false : $opts['settings'][$instance_id]['appkey'];
-					$new_app_key = empty($storage_options['appkey']) ? false : $storage_options['appkey'];
-
-					// If a different app key is being used, then wipe the stored token as it cannot belong to the new app
-					if ($current_app_key !== $new_app_key) {
-						unset($opts['settings'][$instance_id]['tk_access_token']);
-						unset($opts['settings'][$instance_id]['ownername']);
-						unset($opts['settings'][$instance_id]['CSRF']);
-					}
-				
-				}
-				
-				// Now loop over the new options, and replace old options with them
-				foreach ($storage_options as $key => $value) {
-					if (null === $value) {
-						unset($opts['settings'][$instance_id][$key]);
-					} else {
-						if (!isset($opts['settings'][$instance_id])) $opts['settings'][$instance_id] = array();
-						$opts['settings'][$instance_id][$key] = $value;
-					}
-				}
-				
-				if (!empty($opts['settings'][$instance_id]['folder']) && preg_match('#^https?://(www.)dropbox\.com/home/Apps/UpdraftPlus(.Com)?([^/]*)/(.*)$#i', $opts['settings'][$instance_id]['folder'], $matches)) $opts['settings'][$instance_id]['folder'] = $matches[3];
-				
-			}
-			
-		}
-		
-		return $opts;
-	}
-
 	public function remove_local_directory($dir, $contents_only = false) {
 		// PHP 5.3+ only
 		// foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $path) {
@@ -4089,83 +3924,7 @@ class UpdraftPlus {
 		$input = (int) $input;
 		return ($input > 0) ? min($input, 9999) : 1;
 	}
-
-	/**
-	 * Acts as a WordPress options filter
-	 *
-	 * @param  Array $webdav - An array of WebDAV options
-	 * @return Array - the returned array can either be the set of updated WebDAV settings or a WordPress error array
-	 */
-	public function construct_webdav_url($webdav) {
-		// Get the current options (and possibly update them to the new format)
-		$opts = $this->update_remote_storage_options_format('webdav');
-
-		if (is_wp_error($opts)) {
-			if ('recursion' !== $opts->get_error_code()) {
-				$msg = "WebDAV (".$opts->get_error_code()."): ".$opts->get_error_message();
-				$this->log($msg);
-				error_log("UpdraftPlus: $msg");
-			}
-			// The saved options had a problem; so, return the new ones
-			return $webdav;
-		}
-
-		// If the input is not as expected, then return the current options
-		if (!is_array($webdav)) return $opts;
-
-		// Remove instances that no longer exist
-		foreach ($opts['settings'] as $instance_id => $storage_options) {
-			if (!isset($webdav['settings'][$instance_id])) unset($opts['settings'][$instance_id]);
-		}
-
-		// WebDAV has a special case where the settings could be empty so we should check for this before proceeding
-		if (!empty($webdav['settings'])) {
-			
-			foreach ($webdav['settings'] as $instance_id => $storage_options) {
-				if (isset($storage_options['webdav'])) {
-			
-					$url = null;
-					$slash = "/";
-					$host = "";
-					$colon = "";
-					$port_colon = "";
-					
-					if ((80 == $storage_options['port'] && 'webdav' == $storage_options['webdav']) || (443 == $storage_options['port'] && 'webdavs' == $storage_options['webdav'])) {
-						$storage_options['port'] = '';
-					}
-					
-					if ('/' == substr($storage_options['path'], 0, 1)) {
-						$slash = "";
-					}
-					
-					if (false === strpos($storage_options['host'], "@")) {
-						$host = "@";
-					}
-					
-					if ('' != $storage_options['user'] && '' != $storage_options['pass']) {
-						$colon = ":";
-					}
-					
-					if ('' != $storage_options['host'] && '' != $storage_options['port']) {
-						$port_colon = ":";
-					}
-
-					if (!empty($storage_options['url']) && 'http' == strtolower(substr($storage_options['url'], 0, 4))) {
-						$storage_options['url'] = 'webdav'.substr($storage_options['url'], 4);
-					} elseif ('' != $storage_options['user'] && '' != $storage_options['pass']) {
-						$storage_options['url'] = $storage_options['webdav'].urlencode($storage_options['user']).$colon.urlencode($storage_options['pass']).$host.urlencode($storage_options['host']).$port_colon.$storage_options['port'].$slash.$storage_options['path'];
-					} else {
-						$storage_options['url'] = $storage_options['webdav'].urlencode($storage_options['host']).$port_colon.$storage_options['port'].$slash.$storage_options['path'];
-					}
-
-					$opts['settings'][$instance_id]['url'] = $storage_options['url'];
-				}
-			}
-		}
-		
-		return $opts;
-	}
-
+	
 	public function just_one_email($input, $required = false) {
 		$x = $this->just_one($input, 'saveemails', (empty($input) && false === $required) ? '' : get_bloginfo('admin_email'));
 		if (is_array($x)) {
@@ -4260,7 +4019,6 @@ class UpdraftPlus {
 		$warn = array();
 		$err = array();
 		$info = array();
-		
 		$wp_version = $this->get_wordpress_version();
 		global $wpdb;
 
@@ -4348,12 +4106,18 @@ class UpdraftPlus {
 		@set_time_limit($dbscan_timeout);
 
 		// We limit the time that we spend scanning the file for character sets
-		$db_charset_scan_timeout = (defined('UPDRAFTPLUS_DB_CHARSET_SCAN_TIMEOUT') && is_numeric(UPDRAFTPLUS_DB_CHARSET_SCAN_TIMEOUT)) ? UPDRAFTPLUS_DB_CHARSET_SCAN_TIMEOUT : 10;
+		$db_charset_collate_scan_timeout = (defined('UPDRAFTPLUS_DB_CHARSET_COLLATE_SCAN_TIMEOUT') && is_numeric(UPDRAFTPLUS_DB_CHARSET_COLLATE_SCAN_TIMEOUT)) ? UPDRAFTPLUS_DB_CHARSET_COLLATE_SCAN_TIMEOUT : 10;
 		$charset_scan_start_time = microtime(true);
 		$db_supported_character_sets_res = $GLOBALS['wpdb']->get_results('SHOW CHARACTER SET', OBJECT_K);
 		$db_supported_character_sets = (null !== $db_supported_character_sets_res) ? $db_supported_character_sets_res : array();
 		$db_charsets_found = array();
-		while ((($is_plain && !feof($dbhandle)) || (!$is_plain && !gzeof($dbhandle))) && ($line<100 || (!$header_only && count($wanted_tables)>0) || ((microtime(true) - $charset_scan_start_time) < $db_charset_scan_timeout && !empty($db_supported_character_sets)))) {
+		$db_supported_collations_res = $GLOBALS['wpdb']->get_results('SHOW COLLATION', OBJECT_K);
+		$db_supported_collations = (null !== $db_supported_collations_res) ? $db_supported_collations_res : array();
+		$db_charsets_found = array();
+		$db_collates_found = array();
+		$db_supported_charset_related_to_unsupported_collation = false;
+		$db_supported_charsets_related_to_unsupported_collations = array();
+		while ((($is_plain && !feof($dbhandle)) || (!$is_plain && !gzeof($dbhandle))) && ($line<100 || (!$header_only && count($wanted_tables)>0) || ((microtime(true) - $charset_scan_start_time) < $db_charset_collate_scan_timeout && !empty($db_supported_character_sets)))) {
 			$line++;
 			// Up to 1MB
 			$buffer = ($is_plain) ? rtrim(fgets($dbhandle, 1048576)) : rtrim(gzgets($dbhandle, 1048576));
@@ -4367,32 +4131,41 @@ class UpdraftPlus {
 					if (untrailingslashit(site_url()) != $old_siteurl) {
 						if (!$migration_warning) {
 							$migration_warning = true;
-							if ($this->normalise_url($old_siteurl) == $this->normalise_url(site_url()) && !class_exists('UpdraftPlus_Addons_Migrator')) {
+							$info['migration'] = true;
+							// && !class_exists('UpdraftPlus_Addons_Migrator')
+							if ($this->normalise_url($old_siteurl) == $this->normalise_url(site_url())) {
 								$old_siteurl_parsed = parse_url($old_siteurl);
 								$actual_siteurl_parsed = parse_url(site_url());
 								if ((stripos($old_siteurl_parsed['host'], 'www.') === 0 && stripos($actual_siteurl_parsed['host'], 'www.') !== 0) || (stripos($old_siteurl_parsed['host'], 'www.') !== 0 && stripos($actual_siteurl_parsed['host'], 'www.') === 0)) {
-									$warn[] = sprintf(__('The website address in the backup set (%s) is slightly different from that of the site now (%s). This is not expected to be a problem for restoring the site, as long as visits to the former address still reach the site.', 'updraftplus'), $old_siteurl, site_url());
+									$powarn = sprintf(__('The website address in the backup set (%s) is slightly different from that of the site now (%s). This is not expected to be a problem for restoring the site, as long as visits to the former address still reach the site.', 'updraftplus'), $old_siteurl, site_url()).' ';
+								} else {
+									$powarn = '';
 								}
 								if (('https' == $old_siteurl_parsed['scheme'] && 'http' == $actual_siteurl_parsed['scheme']) || ('http' == $old_siteurl_parsed['scheme'] && 'https' == $actual_siteurl_parsed['scheme'])) {
-									$powarn_ssl = sprintf(__('This backup set is of this site, but at the time of the backup you were using %s, whereas the site now uses %s.', 'updraftplus'), $old_siteurl_parsed['scheme'], $actual_siteurl_parsed['scheme']);
+									$powarn .= sprintf(__('This backup set is of this site, but at the time of the backup you were using %s, whereas the site now uses %s.', 'updraftplus'), $old_siteurl_parsed['scheme'], $actual_siteurl_parsed['scheme']);
 									if ('https' == $old_siteurl_parsed['scheme']) {
-										$powarn_ssl .= ' '.sprintf(__('This restoration will work if you still have an SSL certificate (i.e. can use https) to access the site. Otherwise, you will want to use %s to search/replace the site address so that the site can be visited without https.', 'updraftplus'), '<a href="https://updraftplus.com/shop/migrator/">'.__('the migrator add-on', 'updraftplus').'</a>');
+										$powarn .= ' '.apply_filters('updraftplus_https_to_http_additional_warning', sprintf(__('This restoration will work if you still have an SSL certificate (i.e. can use https) to access the site. Otherwise, you will want to use %s to search/replace the site address so that the site can be visited without https.', 'updraftplus'), '<a href="https://updraftplus.com/shop/migrator/">'.__('the migrator add-on', 'updraftplus').'</a>'));
 									} else {
-										$powarn_ssl .= ' '.sprintf(__('As long as your web hosting allows http (i.e. non-SSL access) or will forward requests to https (which is almost always the case), this is no problem. If that is not yet set up, then you should set it up, or use %s so that the non-https links are automatically replaced.', 'updraftplus'), '<a href="https://updraftplus.com/shop/migrator/">'.__('the migrator add-on', 'updraftplus').'</a>');
+										$powarn .= ' '.apply_filters('updraftplus_http_to_https_additional_warning', sprintf(__('As long as your web hosting allows http (i.e. non-SSL access) or will forward requests to https (which is almost always the case), this is no problem. If that is not yet set up, then you should set it up, or use %s so that the non-https links are automatically replaced.', 'updraftplus'), apply_filters('updraftplus_migrator_addon_link', '<a href="https://updraftplus.com/shop/migrator/">'.__('the migrator add-on', 'updraftplus').'</a>')));
 									}
-									$warn[] = $powarn_ssl;
+								} else {
+									$powarn .= apply_filters('updraftplus_dbscan_urlchange_www_append_warning', '');
 								}
+								$warn[] = $powarn;
 							} else {
 								$warn[] = apply_filters('updraftplus_dbscan_urlchange', '<a href="https://updraftplus.com/shop/migrator/">'.__('This backup set is from a different site - this is not a restoration, but a migration. You need the Migrator add-on in order to make this work.', 'updraftplus').'</a>', $old_siteurl, $res);
+							}
+							if (!class_exists('UpdraftPlus_Addons_Migrator')) {
+								$warn[] .= '<strong><a href="'.apply_filters('updraftplus_com_link', "https://updraftplus.com/faqs/tell-me-more-about-the-search-and-replace-site-location-in-the-database-option/").'">'.__('You can search and replace your database (for migrating a website to a new location/URL) with the Migrator add-on - follow this link for more information', 'updraftplus').'</a></strong>';
 							}
 						}
 						// Explicitly set it, allowing the consumer to detect when the result was unknown
 						$info['same_url'] = false;
-						
+
 						if ($this->mod_rewrite_unavailable(false)) {
 							$warn[] = sprintf(__('You are using the %s webserver, but do not seem to have the %s module loaded.', 'updraftplus'), 'Apache', 'mod_rewrite').' '.sprintf(__('You should enable %s to make any pretty permalinks (e.g. %s) work', 'updraftplus'), 'mod_rewrite', 'http://example.com/my-page/');
 						}
-						
+
 					} else {
 						$info['same_url'] = true;
 					}
@@ -4434,14 +4207,14 @@ class UpdraftPlus {
 						if (isset($old_siteinfo['multisite']) && !$old_siteinfo['multisite'] && is_multisite()) {
 							// Just need to check that you're crazy
 							// if (!defined('UPDRAFTPLUS_EXPERIMENTAL_IMPORTINTOMULTISITE') || !UPDRAFTPLUS_EXPERIMENTAL_IMPORTINTOMULTISITE) {
-								// $err[] =  sprintf(__('Error: %s', 'updraftplus'), __('You are running on WordPress multisite - but your backup is not of a multisite site.', 'updraftplus'));
-								// return array($mess, $warn, $err, $info);
+							// $err[] =  sprintf(__('Error: %s', 'updraftplus'), __('You are running on WordPress multisite - but your backup is not of a multisite site.', 'updraftplus'));
+							// return array($mess, $warn, $err, $info);
 							// } else {
-								$warn[] = __('You are running on WordPress multisite - but your backup is not of a multisite site.', 'updraftplus').' '.__('It will be imported as a new site.', 'updraftplus').' <a href="https://updraftplus.com/information-on-importing-a-single-site-wordpress-backup-into-a-wordpress-network-i-e-multisite/">'.__('Please read this link for important information on this process.', 'updraftplus').'</a>';
+							$warn[] = __('You are running on WordPress multisite - but your backup is not of a multisite site.', 'updraftplus').' '.__('It will be imported as a new site.', 'updraftplus').' <a href="https://updraftplus.com/information-on-importing-a-single-site-wordpress-backup-into-a-wordpress-network-i-e-multisite/">'.__('Please read this link for important information on this process.', 'updraftplus').'</a>';
 							// }
 							// Got the needed code?
 							if (!class_exists('UpdraftPlusAddOn_MultiSite') || !class_exists('UpdraftPlus_Addons_Migrator')) {
-								 $err[] = sprintf(__('Error: %s', 'updraftplus'), sprintf(__('To import an ordinary WordPress site into a multisite installation requires %s.', 'updraftplus'), 'UpdraftPlus Premium'));
+								$err[] = sprintf(__('Error: %s', 'updraftplus'), sprintf(__('To import an ordinary WordPress site into a multisite installation requires %s.', 'updraftplus'), 'UpdraftPlus Premium'));
 								return array($mess, $warn, $err, $info);
 							}
 						} elseif (isset($old_siteinfo['multisite']) && $old_siteinfo['multisite'] && !is_multisite()) {
@@ -4470,12 +4243,43 @@ class UpdraftPlus {
 						$wanted_tables = array_diff($wanted_tables, array($table));
 					}
 				}
-				if (substr($buffer, -1, 1) != ';') $processing_create = true;
-			} elseif ($processing_create) {
-				if (!empty($db_supported_character_sets) && preg_match('/ CHARSET=([^\s;]+)/i', $buffer, $charset_match)) {
-					$db_charsets_found[] = $charset_match[1];
+				if (';' != substr($buffer, -1, 1)) {
+					$processing_create = true;
+					$db_supported_charset_related_to_unsupported_collation = true;
 				}
-				if (substr($buffer, -1, 1) == ';') $processing_create = false;
+			} elseif ($processing_create) {
+				if (!empty($db_supported_collations)) {
+					if (preg_match('/ COLLATE=([^\s;]+)/i', $buffer, $collate_match)) {
+						$db_collates_found[] = $collate_match[1];
+						if (!isset($db_supported_collations[$collate_match[1]])) {
+							$db_supported_charset_related_to_unsupported_collation = true;
+						}
+					}
+					if (preg_match('/ COLLATE ([a-zA-Z0-9._-]+),/i', $buffer, $collate_match)) {
+						$db_collates_found[] = $collate_match[1];
+						if (!isset($db_supported_collations[$collate_match[1]])) {
+							$db_supported_charset_related_to_unsupported_collation = true;
+						}
+					}
+					if (preg_match('/ COLLATE ([a-zA-Z0-9._-]+) /i', $buffer, $collate_match)) {
+						$db_collates_found[] = $collate_match[1];
+						if (!isset($db_supported_collations[$collate_match[1]])) {
+							$db_supported_charset_related_to_unsupported_collation = true;
+						}
+					}
+				}
+				if (!empty($db_supported_character_sets)) {
+					if (preg_match('/ CHARSET=([^\s;]+)/i', $buffer, $charset_match)) {
+						$db_charsets_found[] = $charset_match[1];
+						if ($db_supported_charset_related_to_unsupported_collation && !in_array($charset_match[1], $db_supported_charsets_related_to_unsupported_collations)) {
+							$db_supported_charsets_related_to_unsupported_collations[] = $charset_match[1];
+						}
+					}
+				}
+				if (';' == substr($buffer, -1, 1)) {
+					$processing_create = false;
+					$db_supported_charset_related_to_unsupported_collation = false;
+				}
 				static $mysql_version_warned = false;
 				if (!$mysql_version_warned && version_compare($db_version, '5.2.0', '<') && preg_match('/(CHARSET|COLLATE)[= ]utf8mb4/', $buffer)) {
 					$mysql_version_warned = true;
@@ -4500,18 +4304,21 @@ class UpdraftPlus {
 			}
 			if ($db_charset_forbidden) {
 				$db_unsupported_charset_unique = array_unique($db_unsupported_charset);
-				$warn[] = sprintf(_n("The database server that this WordPress site is running on doesn't support the character set (%s) which you are trying to import.", "The database server that this WordPress site is running on doesn't support the character sets (%s) which you are trying to import.", count($db_unsupported_charset_unique), 'updraftplus'), implode(', ', $db_unsupported_charset_unique)).' '.__('You can choose another suitable character set instead and continue with the restoration at your own risk.', 'updraftplus').' <a target="_blank" href="https://updraftplus.com/faqs/implications-changing-tables-character-set/">'.__('Go here for more information.', 'updraftplus').'</a>';
+				$warn[] = sprintf(_n("The database server that this WordPress site is running on doesn't support the character set (%s) which you are trying to import.", "The database server that this WordPress site is running on doesn't support the character sets (%s) which you are trying to import.", count($db_unsupported_charset_unique), 'updraftplus'), implode(', ', $db_unsupported_charset_unique)).' '.__('You can choose another suitable character set instead and continue with the restoration at your own risk.', 'updraftplus').' <a target="_blank" href="https://updraftplus.com/faqs/implications-changing-tables-character-set/">'.__('Go here for more information.', 'updraftplus').'</a>'.' <a target="_blank" href="https://updraftplus.com/faqs/implications-changing-tables-character-set/">'.__('Go here for more information.', 'updraftplus').'</a>';
 				$db_supported_character_sets = array_keys($db_supported_character_sets);
-				$similar_type_charset = $this->get_matching_str_from_array_elems($db_unsupported_charset_unique, $db_supported_character_sets);
+				$similar_type_charset = $this->get_matching_str_from_array_elems($db_unsupported_charset_unique, $db_supported_character_sets, true);
 				if (empty($similar_type_charset)) {
 					$row = $GLOBALS['wpdb']->get_row('show variables like "character_set_database"');
 					$similar_type_charset = (null !== $row) ? $row->Value : '';
+				}
+				if (empty($similar_type_charset) && !empty($db_supported_character_sets[0])) {
+					$similar_type_charset = $db_supported_character_sets[0];
 				}
 				$charset_select_html = '<label>'.__('Your chosen character set to use instead:', 'updraftplus').'</label> ';
 				$charset_select_html .= '<select name="updraft_restorer_charset" id="updraft_restorer_charset">';
 				if (is_array($db_supported_character_sets)) {
 					foreach ($db_supported_character_sets as $character_set) {
-						$charset_select_html .= '<option value="'.esc_attr($character_set).'" '.selected($character_set, $similar_type_charset).'>'.esc_html($character_set).'</option>';
+						$charset_select_html .= '<option value="'.esc_attr($character_set).'" '.selected($character_set, $similar_type_charset, false).'>'.esc_html($character_set).'</option>';
 					}
 				}
 				$charset_select_html .= '</select>';
@@ -4519,25 +4326,86 @@ class UpdraftPlus {
 				$info['addui'] .= $charset_select_html;
 			}
 		}
-/*        $blog_tables = "CREATE TABLE $wpdb->terms (
-CREATE TABLE $wpdb->term_taxonomy (
-CREATE TABLE $wpdb->term_relationships (
-CREATE TABLE $wpdb->commentmeta (
-CREATE TABLE $wpdb->comments (
-CREATE TABLE $wpdb->links (
-CREATE TABLE $wpdb->options (
-CREATE TABLE $wpdb->postmeta (
-CREATE TABLE $wpdb->posts (
-        $users_single_table = "CREATE TABLE $wpdb->users (
-        $users_multi_table = "CREATE TABLE $wpdb->users (
-        $usermeta_table = "CREATE TABLE $wpdb->usermeta (
-        $ms_global_tables = "CREATE TABLE $wpdb->blogs (
-CREATE TABLE $wpdb->blog_versions (
-CREATE TABLE $wpdb->registration_log (
-CREATE TABLE $wpdb->site (
-CREATE TABLE $wpdb->sitemeta (
-CREATE TABLE $wpdb->signups (
-*/
+		if (!empty($db_supported_collations)) {
+			$db_collates_found_unique = array_unique($db_collates_found);
+			$db_unsupported_collate = array();
+			$db_collate_forbidden = false;
+			foreach ($db_collates_found_unique as $db_collate) {
+				if (!isset($db_supported_collations[$db_collate])) {
+					$db_unsupported_collate[] = $db_collate;
+					$db_collate_forbidden = true;
+				}
+			}
+			if ($db_collate_forbidden) {
+				$db_unsupported_collate_unique = array_unique($db_unsupported_collate);
+				$warn[] = sprintf(_n("The database server that this WordPress site is running on doesn't support the collation (%s) used in the database which you are trying to import.", "The database server that this WordPress site is running on doesn't support multiple collations (%s) used in the database which you are trying to import.", count($db_unsupported_collate_unique), 'updraftplus'), implode(', ', $db_unsupported_collate_unique)).' '.__('You can choose another suitable collation instead and continue with the restoration (at your own risk).', 'updraftplus');
+				$similar_type_collate = '';
+				if ($db_charset_forbidden && !empty($similar_type_charset)) {
+					$similar_type_collate = $this->get_similar_collate_related_to_charset($db_supported_collations, $db_unsupported_collate_unique, $similar_type_charset);
+				}
+				if (empty($similar_type_collate) && !empty($db_supported_charsets_related_to_unsupported_collations)) {
+					$db_supported_collations_related_to_charset = array();
+					foreach ($db_supported_collations as $db_supported_collation => $db_supported_collations_info_obj) {
+						if (isset($db_supported_collations_info_obj->Charset) && in_array($db_supported_collations_info_obj->Charset, $db_supported_charsets_related_to_unsupported_collations)) {
+							$db_supported_collations_related_to_charset[] = $db_supported_collation;
+						}
+					}
+					if (!empty($db_supported_collations_related_to_charset)) {
+						$similar_type_collate = $this->get_matching_str_from_array_elems($db_unsupported_collate_unique, $db_supported_collations_related_to_charset, false);
+					}
+				}
+				if (empty($similar_type_collate)) {
+					$similar_type_collate = $this->get_similar_collate_based_on_ocuurence_count($db_collates_found, $db_supported_collations, $db_supported_charsets_related_to_unsupported_collations);
+				}
+				if (empty($similar_type_collate)) {
+					$similar_type_collate = $this->get_matching_str_from_array_elems($db_unsupported_collate_unique, array_keys($db_supported_collations), false);
+				}
+
+				$collate_select_html = '<label>'.__('Your chosen replacement collation', 'updraftplus').':</label>';
+				$collate_select_html .= '<select name="updraft_restorer_collate" id="updraft_restorer_collate">';
+				foreach ($db_supported_collations as $collate => $collate_info_obj) {
+					$option_other_attr = array();
+					if ($db_charset_forbidden && isset($collate_info_obj->Charset)) {
+						$option_other_attr[] = 'data-charset='.esc_attr($collate_info_obj->Charset);
+						if ($similar_type_charset != $collate_info_obj->Charset) {
+							$option_other_attr[] = 'style="display:none;"';
+						}
+					}
+					$collate_select_html .= '<option value="'.esc_attr($collate).'" '.selected($collate, $similar_type_collate, $echo = false).' '.implode(' ', $option_other_attr).'>'.esc_html($collate).'</option>';
+				}
+				$collate_select_html .= '</select>';
+				
+				$info['addui'] = empty($info['addui']) ? $collate_select_html : $info['addui'].'<br>'.$collate_select_html;
+				
+				if ($db_charset_forbidden) {
+					$collate_change_on_charset_selection_data = array(
+						'db_supported_collations' => $db_supported_collations,
+						'db_unsupported_collate_unique' => $db_unsupported_collate_unique,
+						'db_collates_found' => $db_collates_found,
+					);
+					$info['addui'] .= '<input type="hidden" name="collate_change_on_charset_selection_data" id="collate_change_on_charset_selection_data" value="'.esc_attr(json_encode($collate_change_on_charset_selection_data)).'">';
+				}
+			}
+		}
+		/*        $blog_tables = "CREATE TABLE $wpdb->terms (
+		CREATE TABLE $wpdb->term_taxonomy (
+		CREATE TABLE $wpdb->term_relationships (
+		CREATE TABLE $wpdb->commentmeta (
+		CREATE TABLE $wpdb->comments (
+		CREATE TABLE $wpdb->links (
+		CREATE TABLE $wpdb->options (
+		CREATE TABLE $wpdb->postmeta (
+		CREATE TABLE $wpdb->posts (
+				$users_single_table = "CREATE TABLE $wpdb->users (
+				$users_multi_table = "CREATE TABLE $wpdb->users (
+				$usermeta_table = "CREATE TABLE $wpdb->usermeta (
+				$ms_global_tables = "CREATE TABLE $wpdb->blogs (
+		CREATE TABLE $wpdb->blog_versions (
+		CREATE TABLE $wpdb->registration_log (
+		CREATE TABLE $wpdb->site (
+		CREATE TABLE $wpdb->sitemeta (
+		CREATE TABLE $wpdb->signups (
+		*/
 		if (!isset($skipped_tables)) $skipped_tables = array();
 		$missing_tables = array();
 		if ($old_table_prefix) {
@@ -4570,53 +4438,195 @@ CREATE TABLE $wpdb->signups (
 		// //need to make sure that we reset the file back to .crypt before clean temp files
 		// $db_file = $decrypted_file['fullpath'].'.crypt';
 		// unlink($decrypted_file['fullpath']);
-		
+
 		return array($mess, $warn, $err, $info);
 	}
-	
+
 	/**
 	 * Find matching string from $str_arr1 and $str_arr2
 	 *
-	 * @param array $str_arr1 array of strings
-	 * @param array $str_arr2 array of strings
+	 * @param array   $str_arr1                  array of strings
+	 * @param array   $str_arr2                  array of strings
+	 * @param boolean $match_until_first_numeric only match until first numeric occurence
 	 * @return string matching str which will be best for replacement
 	 */
-	private function get_matching_str_from_array_elems($str_arr1, $str_arr2) {
+	private function get_matching_str_from_array_elems($str_arr1, $str_arr2, $match_until_first_numeric = true) {
 		$matching_str = '';
-		$str_partial_arr = array();
-		foreach ($str_arr1 as $str1) {
-			$str1_str_length = strlen($str1);
-			$temp_str1_chars = str_split($str1);
-			$temp_partial_str = '';
-			// The flag is for whether non-numeric character passed after numeric character occurence in str1. For ex. str1 is utf8mb4, the flag wil be true when parsing m after utf8.
-			$numeric_char_pass_flag = false;
-			$char_position_in_str1 = 0;
-			while ($char_position_in_str1 <= $str1_str_length) {
-				if ($numeric_char_pass_flag && !is_numeric($temp_str1_chars[$char_position_in_str1])) {
+		if ($match_until_first_numeric) {
+			$str_partial_arr = array();
+			foreach ($str_arr1 as $str1) {
+				$str1_str_length = strlen($str1);
+				$temp_str1_chars = str_split($str1);
+				$temp_partial_str = '';
+				// The flag is for whether non-numeric character passed after numeric character occurence in str1. For ex. str1 is utf8mb4, the flag wil be true when parsing m after utf8.
+				$numeric_char_pass_flag = false;
+				$char_position_in_str1 = 0;
+				while ($char_position_in_str1 <= $str1_str_length) {
+					if ($numeric_char_pass_flag && !is_numeric($temp_str1_chars[$char_position_in_str1])) {
+						break;
+					}
+					if (is_numeric($temp_str1_chars[$char_position_in_str1])) {
+						$numeric_char_pass_flag = true;
+					}
+					$temp_partial_str .= $temp_str1_chars[$char_position_in_str1];
+					$char_position_in_str1++;
+				}
+				$str_partial_arr[] = $temp_partial_str;
+			}
+			foreach ($str_partial_arr as $str_partial) {
+				if (!empty($matching_str)) {
 					break;
 				}
-				if (is_numeric($temp_str1_chars[$char_position_in_str1])) {
-					$numeric_char_pass_flag = true;
+				foreach ($str_arr2 as $str2) {
+					if (0 === stripos($str2, $str_partial)) {
+						$matching_str = $str2;
+						break;
+					}
 				}
-				$temp_partial_str .= $temp_str1_chars[$char_position_in_str1];
-				$char_position_in_str1++;
 			}
-			$str_partial_arr[] = $temp_partial_str;
-		}
-		foreach ($str_partial_arr as $str_partial) {
-			if (!empty($matching_str)) {
-				break;
+		} else {
+			$str1_partial_first_arr = array();
+			$str1_partial_first_arr = array();
+			$str1_partial_start_n_middle_arr = array();
+			$str1_partial_middle_n_last_arr = array();
+			$str1_partial_last_arr = array();
+			foreach ($str_arr1 as $str1) {
+				$str1_partial_arr = explode('_', $str1);
+				$str1_parts_count = count($str1_partial_arr);
+				$str1_partial_first_arr[] = $str1_partial_arr[0];
+				$str1_last_part_index = $str1_parts_count - 1;
+				if ($str1_last_part_index > 0) {
+					$str1_partial_last_arr[] = $str1_partial_arr[$str1_last_part_index];
+					$str1_partial_start_n_middle_arr[] = substr($str1, 0, stripos($str1, '_'));
+					$str1_partial_middle_n_last_arr[] = substr($str1, stripos($str1, '_') + 1);
+				}
 			}
-			foreach ($str_arr2 as $str2) {
-				if (0 === stripos($str2, $str_partial)) {
-					$matching_str = $str2;
+			for ($case_no = 1; $case_no <= 5; $case_no++) {
+				if (!empty($matching_str)) {
 					break;
+				}
+				foreach ($str_arr2 as $str2) {
+					switch ($case_no) {
+						// Case 1: Both Start and End match
+						case 1:
+						$str2_partial_arr = explode('_', $str2);
+						$str2_first_part = $str2_partial_arr[0];
+						$str2_parts_count = count($str2_partial_arr);
+						$str2_last_part_index = $str2_parts_count - 1;
+						if ($str2_last_part_index > 0) {
+								$str2_last_part = $str2_partial_arr[$str2_last_part_index];
+						} else {
+														$str2_last_part = '';
+						}
+						if (!empty($str2_last_part) && !empty($str1_partial_last_arr) && in_array($str2_first_part, $str1_partial_first_arr) && in_array($str2_last_part, $str1_partial_last_arr)) {
+								$matching_str = $str2;
+						}
+							break;
+						// Case 2: Start Middle Match
+						case 2:
+						$str2_partial_first_n_middle_parts = substr($str2, 0, stripos($str2, '_'));
+						if (in_array($str2_partial_first_n_middle_parts, $str1_partial_start_n_middle_arr)) {
+								$matching_str = $str2;
+						}
+							break;
+						// Case 3: End Middle Match
+						case 3:
+						$str2_partial_middle_n_last_parts = stripos($str2, '_') !== false ? substr($str2, stripos($str2, '_') + 1) : '';
+						if (!empty($str2_partial_middle_n_last_parts) && in_array($str2_partial_middle_n_last_parts, $str1_partial_middle_n_last_arr)) {
+								$matching_str = $str2;
+						}
+							break;
+						// Case 4: Start Match (low possibilities)
+						case 4:
+						$str2_partial_arr = explode('_', $str2);
+						$str2_first_part = $str2_partial_arr[0];
+						if (in_array($str2_first_part, $str1_partial_first_arr)) {
+								$matching_str = $str2;
+						}
+							break;
+						// Case 5: End Match (low possibilities)
+						case 5:
+						$str2_partial_arr = explode('_', $str2);
+						$str2_parts_count = count($str2_partial_arr);
+						$str2_last_part_index = $str2_parts_count - 1;
+						if ($str2_last_part_index > 0) {
+								$str2_last_part = $str2_partial_arr[$str2_last_part_index];
+						} else {
+														$str2_last_part = '';
+						}
+						if (!empty($str2_last_part) && in_array($str2_last_part, $str1_partial_last_arr)) {
+								$matching_str = $str2;
+						}
+							break;
+					}
+					if (!empty($matching_str)) {
+						break;
+					}
 				}
 			}
 		}
 		return $matching_str;
 	}
-	
+
+	/**
+	 * Get default substitute similar collate related to charset
+	 *
+	 * @param array  $db_supported_collations       Supported collations. It should contain result of 'SHOW COLLATION' query
+	 * @param array  $db_unsupported_collate_unique Unsupported unique collates collection
+	 * @param string $similar_type_charset          Charset for which need to get default collate substitution
+	 * @return string $similar_type_collate default substitute collate which is best suitable or blank string
+	 */
+	public function get_similar_collate_related_to_charset($db_supported_collations, $db_unsupported_collate_unique, $similar_type_charset) {
+		$similar_type_collate = '';
+		$db_supported_collations_related_to_charset = array();
+		foreach ($db_supported_collations as $db_supported_collation => $db_supported_collations_info_obj) {
+			if (isset($db_supported_collations_info_obj->Charset) && $db_supported_collations_info_obj->Charset == $similar_type_charset) {
+				$db_supported_collations_related_to_charset[] = $db_supported_collation;
+			}
+		}
+		if (!empty($db_supported_collations_related_to_charset)) {
+			$similar_type_collate = $this->get_matching_str_from_array_elems($db_unsupported_collate_unique, $db_supported_collations_related_to_charset, false);
+		}
+		return $similar_type_collate;
+	}
+
+	/**
+	 * Get default substitute similar collate based on existing supported collates count in database backup file
+	 *
+	 * @param array $db_collates_found                                       All collates which have found in database backup file regardless whether they are supported or unsupported
+	 * @param array $db_supported_collations                                 Supported collations. It should contain result of 'SHOW COLLATION' query
+	 * @param array $db_supported_charsets_related_to_unsupported_collations All charset which are related to unsupported collation
+	 *
+	 * @return string $similar_type_collate default substitute collate which is best suitable or blank string
+	 */
+	public function get_similar_collate_based_on_ocuurence_count($db_collates_found, $db_supported_collations, $db_supported_charsets_related_to_unsupported_collations) {
+		$similar_type_collate = '';
+		$db_supported_collates_found_with_occurrence = array();
+		foreach ($db_collates_found as $db_collate_found) {
+			if (isset($db_supported_collations[$db_collate_found])) {
+				if (isset($db_supported_collates_found_with_occurrence[$db_collate_found])) {
+					$db_supported_collates_found_with_occurrence[$db_collate_found] = intval($db_supported_collates_found_with_occurrence[$db_collate_found]) + 1;
+				} else {
+					$db_supported_collates_found_with_occurrence[$db_collate_found] = 1;
+				}
+			}
+		}
+		if (!empty($db_supported_collates_found_with_occurrence)) {
+			arsort($db_supported_collates_found_with_occurrence);
+			if (!empty($db_supported_charsets_related_to_unsupported_collations)) {
+				foreach ($db_supported_collates_found_with_occurrence as $db_supported_collate_with_occurrence => $occurrence_count) {
+					if (isset($db_supported_collations[$db_supported_collate_with_occurrence]) && isset($db_supported_collations[$db_supported_collate_with_occurrence]->Charset) && in_array($db_supported_collations[$db_supported_collate_with_occurrence]->Charset, $db_supported_charsets_related_to_unsupported_collations)) {
+						$similar_type_collate = $db_supported_collate_with_occurrence;
+						break;
+					}
+				}
+			} else {
+				$similar_type_collate = array_search(max($db_supported_collates_found_with_occurrence), $db_supported_collates_found_with_occurrence);
+			}
+		}
+		return $similar_type_collate;
+	}
+
 	private function gzopen_for_read($file, &$warn, &$err) {
 		if (!function_exists('gzopen') || !function_exists('gzread')) {
 			$missing = '';

@@ -4,8 +4,8 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: arabic, aspect ratio, author, category, categories, category, current post, excerpt, extended, featured, featured images, first post image, height, image, images, listed posts, post date, post categories, post category, post title, random, recent posts, sticky, thumb, thumbnail, thumbnails, thumbs, widget, widgets, width, persian, farsi, russian, turkish, japanese
 Requires at least: 2.9
 Requires PHP: 5.2
-Tested up to: 4.8.2
-Stable tag: 5.1.2
+Tested up to: 4.9.1
+Stable tag: 5.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ List of your site&#8217;s most recent posts, with clickable title and thumbnails
 
 == Description ==
 
-The plugin is available in English, German (Deutsch), Persian (فارسی), Arabic (العربية), Polish (Polski) Russian (русский), Turkish (Türkçe) and Japanese (日本語).
+The plugin is available in English, German (Deutsch), Persian (فارسی), Arabic (العربية), Polish (Polski) Russian (русский), Turkish (Türkçe), Japanese (日本語) and Greek (Ελληνικά).
 
 = Lightweight, simple and effective =
 
@@ -25,13 +25,12 @@ You can set the width and heigth of the thumbnails in the list. The thumbnails a
 
 = What users said =
 
+* **"Easier than making an egg, seriously."** in the [reviews](https://wordpress.org/support/topic/easier-than-making-an-egg-seriously/) by djackofall on October 2, 2017
 * **"This plugin is INCREDIBLE"** in the [reviews](https://wordpress.org/support/topic/do-you-also-have-one-for-most-popular-posts/) by lucio7 on August 25, 2017
 * **Number 16** in [20 WordPress Plugins Every Blogger Needs to Increase Engagement](http://nocturnalthrive.com/2017/08/09/20-free-wordpress-plugins-every-blogger-needs/) by Nocturnal Thrive on August 9, 2017
 * **"Excellent (after trying a few)!"** in the [reviews](https://wordpress.org/support/topic/excellent-after-trying-a-few/) by giorgissimo on January 6, 2017
 * **"A first class plugin"** in the [support forum](https://wordpress.org/support/topic/a-first-class-plugin) by lakenjr on August 29, 2016
 * **"&hellip;definitely the best Recent Posts plugin I've found&hellip;"** in the [support forum](https://wordpress.org/support/topic/google-chrome-blurry-thumbnail-85x85) by devintshawn on April 9, 2016
-* **"&hellip;you just have to try it out"** in [WordPress Tools That Use Visuals to Grab Visitors’ Attention](http://www.onextrapixel.com/2016/02/25/wordpress-tools-that-use-visuals-to-grab-visitors-attention/) by Gayane Mar on February 25, 2016
-* **"Easy and lightweight"** in [8 Useful WordPress Widgets for Your Site](http://dinevthemes.com/8-useful-wordpress-widgets-for-your-site/) by Lucy Barret on January 21, 2016
 * **Number 5** in [12 Useful WordPress Sidebar Widgets to Engage Visitors](https://85ideas.com/plugins/best-widgets-wordpress/) by Pawan Kumar on December 8, 2015
 * **Number 1** in [Los 10 widgets de WordPress más prácticos](http://wpdirecto.com/los-10-widgets-de-wordpress-mas-practicos-1860/) by Jorge López on November 13, 2015
 * [How to show recent posts in WordPress blog](http://mayifix.com/how-to-show-recent-posts-in-wordpress-blog.html) by Robin on June 28, 2015
@@ -70,7 +69,7 @@ You can set the width and heigth of the thumbnails in the list. The thumbnails a
 
 = Much more options available =
 
-If you want to build your special posts lists with additional options for layout, informations about each post and embedding via shortcode [take a look at the plugin Ultimate Post List Pro](http://shop.stehle-internet.de/downloads/ultimate-post-list-pro/).
+If you want to build your special posts lists with additional options for layout, informations about each post and embedding via shortcode [take a look at the plugin Ultimate Post List Pro](https://shop.stehle-internet.de/downloads/ultimate-post-list-pro/).
 
 = Useful hints for developers: Supported Hooks =
 
@@ -126,14 +125,15 @@ All numbers of comments in the lists:
 
 The user interface is available in
 
+* Arabic (العربية), kindly drawn up by [Shadi AlZard](https://profiles.wordpress.org/salzard)
 * English
 * German (Deutsch)
+* Greek (Ελληνικά), kindly drawn up by Kostas Arvanitidis
+* Japanese (日本語), kindly drawn up by [Kazuyuki Kumai](https://wordpress.org/support/users/kazuyk/)
 * Persian (فارسی), kindly drawn up by [Sajjad Panahi](https://profiles.wordpress.org/asreelm)
-* Arabic (العربية), kindly drawn up by [Shadi AlZard](https://profiles.wordpress.org/salzard)
 * Polish (Polski), kindly drawn up by [Marcin Mikolajczyk](https://profiles.wordpress.org/marcinmik)
 * Russian (ру́сский), kindly drawn up by [dmitriynn](https://profiles.wordpress.org/dmitriynn)
 * Turkish (Türkçe), kindly drawn up by [Mehmet HAKAN](https://profiles.wordpress.org/memomelo)
-* Japanese (日本語), kindly drawn up by [Kazuyuki Kumai](https://wordpress.org/support/users/kazuyk/)
 
 Further translations are welcome. If you want to give in your translation please leave a notice in the [plugin's support forum](https://wordpress.org/support/plugin/recent-posts-widget-with-thumbnails).
 
@@ -186,11 +186,17 @@ To keep the plugin lightweight: no. Please set the alignment in the CSS of your 
 
 = Where can I set the CSS of the list? =
 
-To keep the plugin lightweight: no. Please set the CSS via a Custom CSS plugin or in the CSS file of your theme instead.
+To keep the plugin lightweight: no. Please set the CSS in the Customizer at "Additional CSS".
 
 = Can the plugin take the first image of a post as thumbnail image? =
 
 Yes. It works with images previously uploaded into the media library. You can select to prefer the first image to the featured image or to use the first image only.
+
+= How to keep HTML tags in the excerpts? =
+
+Use the "Excerpt" box below the editor on a post edit page in the backend. The plugin uses those user-defined excerpts unchanged "as is".
+
+If there is no text in the "Excerpt" box the plugin tries to build an excerpt via the post content. Since there is the "maximum length of the excerpt" option shortening the HTML content would lead to severe layout errors. So before shortening all HTML tags and shortcodes are removed.
 
 = Where is the *.pot file for translating the plugin in any language? =
 
@@ -202,6 +208,18 @@ If you want to contribute a translation of the plugin in your language it would 
 2. The second screenshot shows the widget on the Widget Management Page in the backend.
 
 == Changelog ==
+
+= 5.2.2 =
+* Fixed missing feature opening links in excerpts in new windows
+* Revised FAQ
+
+= 5.2.1 =
+* Added greek translation. Thank you, Kostas Arvanitidis!
+* Tested successfully with WordPress 4.9.1
+
+= 5.2 =
+* Added option to set the 'more' text as link
+* Updated *.pot file and some translations
 
 = 5.1.2 =
 * Added japanese translation. Thank you very much, [Kazuyuki Kumai](https://wordpress.org/support/users/kazuyk/)
@@ -263,7 +281,7 @@ If you want to contribute a translation of the plugin in your language it would 
 * Added polish translation. Thank you very much, [Marcin Mikolajczyk](https://profiles.wordpress.org/marcinmik)
 * Improved: Manual excerpts are taken unchanged ("as is")
 * I18n description in the backend's plugin list
-* Added link to more versatile plugin [Ultimate Post List Pro](http://shop.stehle-internet.de/downloads/ultimate-post-list-pro/)
+* Added link to more versatile plugin [Ultimate Post List Pro](https://shop.stehle-internet.de/downloads/ultimate-post-list-pro/)
 * Tested successfully with WordPress 4.5
 * Updated *.pot file and translations
 
@@ -419,6 +437,15 @@ Successfully tested with WordPress 4.0
 * The plugin was released.
 
 == Upgrade Notice ==
+
+= 5.2.2 =
+Fixed missing feature opening links in excerpts in new windows, revised FAQ
+
+= 5.2.1 =
+Added greek translation, tested with WordPress 4.9.1
+
+= 5.2 =
+Added option to set the 'more' text as link, updated some translations
 
 = 5.1.2 =
 Added japanese translation, tested with WordPress 4.8.2

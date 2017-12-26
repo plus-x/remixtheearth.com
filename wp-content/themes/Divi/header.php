@@ -30,16 +30,12 @@
 		document.documentElement.className = 'js';
 	</script>
 
-
 	<?php wp_head(); ?>
-
 </head>
 <body <?php body_class(); ?>>
-<div class="my_loaders"><!--<img src="http://remixtheearth.com/test/wp-content/uploads/2017/09/126.gif"/>--></div>
 <?php
 	$product_tour_enabled = et_builder_is_product_tour_enabled();
 	$page_container_style = $product_tour_enabled ? ' style="padding-top: 0px;"' : ''; ?>
-<div class="semixh"></div>
 	<div id="page-container"<?php echo $page_container_style; ?>>
 <?php
 	if ( $product_tour_enabled || is_page_template( 'page-template-blank.php' ) ) {
@@ -65,8 +61,6 @@
 
 	<?php if ( $et_top_info_defined && ! $et_slide_header || is_customize_preview() ) : ?>
 		<div id="top-header"<?php echo $et_top_info_defined ? '' : 'style="display: none;"'; ?>>
-
-
 			<div class="container clearfix">
 
 			<?php if ( $et_contact_info_defined ) : ?>
@@ -271,7 +265,6 @@
 
 					<?php do_action( 'et_header_top' ); ?>
 				</div> <!-- #et-top-navigation -->
-                
 			</div> <!-- .container -->
 			<div class="et_search_outer">
 				<div class="container et_search_form_container">

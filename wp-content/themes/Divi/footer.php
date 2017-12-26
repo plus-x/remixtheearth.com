@@ -6,11 +6,7 @@
 
 if ( ! is_page_template( 'page-template-blank.php' ) ) : ?>
 
-
-<footer id="main-footer" style="background:url('<?php echo the_field('footer_img2',5); ?>');">
-
-
-			
+			<footer id="main-footer">
 				<?php get_sidebar( 'footer' ); ?>
 
 
@@ -50,14 +46,7 @@ if ( ! is_page_template( 'page-template-blank.php' ) ) : ?>
 <?php endif; // ! is_page_template( 'page-template-blank.php' ) ?>
 
 	</div> <!-- #page-container -->
-<script>
-   jQuery(window).load(function() {
-         jQuery('.my_loaders').css('display', 'none');
 
-   });
-      
-</script>
 	<?php wp_footer(); ?>
-    
 </body>
 </html>

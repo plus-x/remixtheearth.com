@@ -26,6 +26,35 @@ $shortname 	= esc_html( $shortname );
 $pages_ids 	= array_map( 'intval', $pages_ids );
 $cats_ids 	= array_map( 'intval', $cats_ids );
 
+// Get default sidebar class
+if ( is_rtl() ) {
+	$sidebar_options = array(
+		'et_left_sidebar'    => esc_html__( 'Left Sidebar', $themename ),
+		'et_right_sidebar'   => esc_html__( 'Right Sidebar', $themename ),
+	);
+
+	$shop_page_sidebar_options = array(
+		'et_left_sidebar'    => esc_html__( 'Left Sidebar', $themename ),
+		'et_right_sidebar'   => esc_html__( 'Right Sidebar', $themename ),
+		'et_full_width_page' => esc_html__( 'Fullwidth', $themename ),
+	);
+
+	$default_sidebar_class = 'et_left_sidebar';
+} else {
+	$sidebar_options = array(
+		'et_right_sidebar'   => esc_html__( 'Right Sidebar', $themename ),
+		'et_left_sidebar'    => esc_html__( 'Left Sidebar', $themename ),
+	);
+
+	$shop_page_sidebar_options = array(
+		'et_right_sidebar'   => esc_html__( 'Right Sidebar', $themename ),
+		'et_left_sidebar'    => esc_html__( 'Left Sidebar', $themename ),
+		'et_full_width_page' => esc_html__( 'Fullwidth', $themename ),
+	);
+
+	$default_sidebar_class = 'et_right_sidebar';
+}
+
 // Remove option-based filter output on theme options loading
 remove_filter( 'et_load_unminified_scripts', 'et_divi_load_unminified_scripts' );
 remove_filter( 'et_load_unminified_styles', 'et_divi_load_unminified_styles' );
@@ -100,15 +129,20 @@ $options = array (
 				   "desc" => esc_html__( "By default the theme truncates your posts on index/homepages automatically to create post previews. If you would rather show your posts in full on index pages like a traditional blog then you can activate this feature.", $themename ),
 			),
 
+			array( 	"name" => esc_html__( "Sidebar Layout", $themename ),
+				   	"id" => $shortname . "_sidebar",
+				   	"type" => "select",
+				   	"options" => $sidebar_options,
+				   	"std" => $default_sidebar_class,
+				   	"desc" => esc_html__( "Here you can choose default sidebar layout", $themename ),
+				   	'et_save_values' => true,
+			),
+
 			array( 	"name" => esc_html__( "Shop Page & Category Page Layout for WooCommerce", $themename ),
 				   	"id" => $shortname . "_shop_page_sidebar",
 				   	"type" => "select",
-				   	"options" => array(
-				   		'et_right_sidebar'   => esc_html__( 'Right Sidebar', $themename ),
-				   		'et_left_sidebar'    => esc_html__( 'Left Sidebar', $themename ),
-				   		'et_full_width_page' => esc_html__( 'Full Width', $themename ),
-				   	),
-				   	"std" => 'et_right_sidebar',
+				   	"options" => $shop_page_sidebar_options,
+				   	"std" => $default_sidebar_class,
 				   	"desc" => esc_html__( "Here you can choose Shop Page & Category Page Layout for WooCommerce.", $themename ),
 				   	'et_save_values' => true,
 			),
@@ -841,7 +875,7 @@ $options = array (
 				   "id" => $shortname . "_integration_single_bottom",
 				   "type" => "textarea",
 				   "std" => "",
-				   "desc" => esc_html__( "Any code you place here will be placed at the top of all single posts. This is useful if you are looking to integrating things such as social bookmarking links.", $themename )
+				   "desc" => esc_html__( "Any code you place here will be placed at the bottom of all single posts. This is useful if you are looking to integrating things such as social bookmarking links.", $themename )
 			),
 
 		array( "name" => "integration-1",

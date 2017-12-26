@@ -2,7 +2,7 @@
 
 <?php if ( 'on' === et_get_option( 'divi_show_facebook_icon', 'on' ) ) : ?>
 	<li class="et-social-icon et-social-facebook">
-		<a href="<?php echo esc_url( et_get_option( 'divi_facebook_url', '#' ) ); ?>" class="icon" target="_blank">
+		<a href="<?php echo esc_url( et_get_option( 'divi_facebook_url', '#' ) ); ?>" class="icon">
 			<span><?php esc_html_e( 'Facebook', 'Divi' ); ?></span>
 		</a>
 	</li>
@@ -33,20 +33,5 @@
 		</a>
 	</li>
 <?php endif; ?>
-<li class="et-social-icon et-social-youtube">
-		<a href="https://www.youtube.com/channel/UCiqf9PKtru6XvrWObKoQoJQ" class="icon" target="_blank">
-			<span><?php esc_html_e( 'YOUTUBE', 'Divi' ); ?></span>
-		</a>
-	</li>
-<li class="et-social-icon et-social-instagram">
-		<a href="https://www.instagram.com/remix_the_earth/" class="icon" target="_blank">
-			<span><?php esc_html_e( 'INSTAGRAM', 'Divi' ); ?></span>
-		</a>
-	</li>
 
-
-
-
-
-    
 </ul>

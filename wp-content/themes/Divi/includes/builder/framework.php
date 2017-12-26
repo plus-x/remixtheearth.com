@@ -27,6 +27,7 @@ if ( wp_doing_ajax() && ! is_customize_preview() ) {
 			'et_fb_process_imported_content',
 			'et_fb_get_saved_templates',
 			'et_fb_retrieve_builder_data',
+			'et_pb_process_custom_font',
 			'et_builder_email_add_account',     // email opt-in module
 			'et_builder_email_remove_account',  // email opt-in module
 			'et_builder_email_get_lists',       // email opt-in module
@@ -81,6 +82,7 @@ if ( wp_doing_ajax() && ! is_customize_preview() ) {
 	}
 
 	$force_builder_load = isset( $_POST['et_load_builder_modules'] ) && '1' === $_POST['et_load_builder_modules'];
+	$force_memory_limit = isset( $_POST['action'] ) && 'et_fb_retrieve_builder_data' === $_POST['action'];
 
 	if ( isset( $_REQUEST['action'] ) && 'heartbeat' == $_REQUEST['action'] ) {
 		// if this is the heartbeat, and if its not packing our heartbeat data, then return
@@ -91,7 +93,7 @@ if ( wp_doing_ajax() && ! is_customize_preview() ) {
 		return;
 	}
 
-	if ( et_should_memory_limit_increase() ) {
+	if ( $force_memory_limit || et_should_memory_limit_increase() ) {
 		et_increase_memory_limit();
 	}
 }
@@ -116,7 +118,6 @@ function et_builder_load_modules_styles() {
 	wp_enqueue_script( 'magnific-popup', ET_BUILDER_URI . '/scripts/jquery.magnific-popup.js', array( 'jquery' ), ET_BUILDER_VERSION, true );
 	wp_enqueue_script( 'et-jquery-touch-mobile', ET_BUILDER_URI . '/scripts/jquery.mobile.custom.min.js', array( 'jquery' ), ET_BUILDER_VERSION, true );
 	wp_enqueue_script( 'et-builder-modules-script', ET_BUILDER_URI . '/scripts/frontend-builder-scripts.js', apply_filters( 'et_pb_frontend_builder_scripts_dependencies', array( 'jquery', 'et-jquery-touch-mobile' ) ), ET_BUILDER_VERSION, true );
-
 	wp_enqueue_style( 'magnific-popup', ET_BUILDER_URI . '/styles/magnific_popup.css', array(), ET_BUILDER_VERSION );
 
 	if ( et_is_builder_plugin_active() ) {
@@ -135,7 +136,6 @@ function et_builder_load_modules_styles() {
 	}
 
 	$builder_modules_script_handle = apply_filters( 'et_builder_modules_script_handle', 'et-builder-modules-script' );
-
 
 	wp_localize_script( $builder_modules_script_handle, 'et_pb_custom', array(
 		'ajaxurl'                => is_ssl() ? admin_url( 'admin-ajax.php' ) : admin_url( 'admin-ajax.php', 'http' ),
@@ -205,6 +205,50 @@ function et_builder_load_modules_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'et_builder_load_modules_styles', 11 );
 
+function et_builder_get_animation_data() {
+	$animation_data      = et_builder_handle_animation_data();
+	$animation_data_json = json_encode( $animation_data ); ?>
+	<script type="text/javascript">
+		var et_animation_data = <?php echo $animation_data_json; ?>;
+	</script>
+	<?php
+}
+add_action( 'wp_footer', 'et_builder_get_animation_data' );
+
+// Force Backbone templates cache to be cleared on language change to make sure the settings modal is translated
+// defaults for arguments are provided because their number is different for both the actions
+function et_pb_force_clear_template_cache( $meta_id = false, $object_id = false, $meta_key = false, $_meta_value = false) {
+	$current_action = current_action();
+
+	if ( ( 'updated_user_meta' === $current_action && 'locale' === $meta_key ) || 'update_option_WPLANG' === $current_action ) {
+		et_update_option( 'et_pb_clear_templates_cache', true );
+	}
+}
+add_action( 'update_option_WPLANG', 'et_pb_force_clear_template_cache' );
+add_action( 'updated_user_meta', 'et_pb_force_clear_template_cache', 10, 4 );
+
+function et_builder_handle_animation_data( $element_data = false ) {
+	static $data = array();
+	static $data_classes = array();
+
+	if ( ! $element_data ) {
+		return $data;
+	}
+
+	// This should not be possible but let's be safe
+	if ( empty( $element_data['class'] ) ) {
+		return;
+	}
+
+	// Prevent duplication animation data entries created by global modules
+	if ( in_array( $element_data['class'], $data_classes ) ) {
+		return;
+	}
+
+	$data[] = $element_data;
+	$data_classes[] = $element_data['class'];
+}
+
 /**
  * Get list of concatenated & minified script and their possible alternative name
  * @return array
@@ -240,6 +284,7 @@ function et_builder_get_minified_styles() {
 	$minified_styles = array(
 		'et-shortcodes-css',
 		'et-shortcodes-responsive-css',
+		'et-animations',
 		'magnific-popup',
 	);
 
@@ -420,6 +465,16 @@ function et_builder_body_classes( $classes ) {
 		$classes[] = 'et-pb-preview';
 	}
 
+	// Minified JS identifier class name
+	if ( ! et_load_unminified_scripts() ) {
+		$classes[] = 'et_minified_js';
+	}
+
+	// Minified CSS identifier class name
+	if ( ! et_load_unminified_styles() ) {
+		$classes[] = 'et_minified_css';
+	}
+
 	return $classes;
 }
 add_filter( 'body_class', 'et_builder_body_classes' );
@@ -443,7 +498,7 @@ function et_builder_load_framework() {
 		global $pagenow, $et_current_memory_limit;
 
 		if ( ! empty( $pagenow ) && in_array( $pagenow, array( 'post.php', 'post-new.php' ) ) ) {
-			$et_current_memory_limit = intval( @ini_get( 'memory_limit' ) );
+			$et_current_memory_limit = et_core_get_memory_limit();
 		}
 	}
 
@@ -481,15 +536,12 @@ function et_builder_load_framework() {
 endif;
 
 function et_builder_load_frontend_builder() {
-	// set the $et_current_memory_limit if FB is loading
 	global $et_current_memory_limit;
-	$et_current_memory_limit = intval( @ini_get( 'memory_limit' ) );
 
-	// try to increase the memory limit to 128mb silently if it less than 128
-	if ( ! empty( $et_current_memory_limit ) && intval( $et_current_memory_limit ) < 128 ) {
-		if ( true !== strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
-			@ini_set( 'memory_limit', '128M' );
-		}
+	$et_current_memory_limit = et_core_get_memory_limit();
+
+	if ( $et_current_memory_limit < 256 ) {
+		@ini_set( 'memory_limit', '256M' );
 	}
 
 	require_once ET_BUILDER_DIR . 'frontend-builder/init.php';

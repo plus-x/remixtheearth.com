@@ -3,7 +3,7 @@
 Plugin Name: Recent Posts Widget With Thumbnails
 Plugin URI:  http://wordpress.org/plugins/recent-posts-widget-with-thumbnails/
 Description: Small and fast plugin to display in the sidebar a list of linked titles and thumbnails of the most recent postings
-Version:     5.1.2
+Version:     5.2.2
 Author:      Martin Stehle
 Author URI:  http://stehle-internet.de
 Text Domain: recent-posts-widget-with-thumbnails
@@ -72,7 +72,7 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 				$widget_desc = 'List of your site&#8217;s most recent posts, with clickable title and thumbnails.';
 		}
 		$this->plugin_slug				= 'recent-posts-widget-with-thumbnails';
-		$this->plugin_version			= '5.1.2';
+		$this->plugin_version			= '5.2.2';
 		$this->default_number_posts		= 5;
 		$this->default_thumb_dimensions	= 'custom';
 		$this->default_thumb_width		= absint( round( get_option( 'thumbnail_size_w', 110 ) / 2 ) );
@@ -88,12 +88,12 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 		$widget_ops = array( 'classname' => $this->plugin_slug, 'description' => $widget_desc );
 		parent::__construct( $this->plugin_slug, $widget_name, $widget_ops );
 
-		add_action( 'admin_init', array( $this, 'load_plugin_textdomain' ) );
-		add_action( 'save_post', array( $this, 'flush_widget_cache' ) );
-		add_action( 'deleted_post', array( $this, 'flush_widget_cache' ) );
-		add_action( 'switch_theme', array( $this, 'flush_widget_cache' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_public_style' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_style' ) );
+		add_action( 'admin_init',				array( $this, 'load_plugin_textdomain' ) );
+		add_action( 'save_post',				array( $this, 'flush_widget_cache' ) );
+		add_action( 'deleted_post',				array( $this, 'flush_widget_cache' ) );
+		add_action( 'switch_theme',				array( $this, 'flush_widget_cache' ) );
+		add_action( 'wp_enqueue_scripts',		array( $this, 'enqueue_public_style' ) );
+		add_action( 'admin_enqueue_scripts',	array( $this, 'enqueue_admin_style' ) );
 
 		// not in use, just for the po-editor to display the translation on the plugins overview list
 		$widget_name = __( 'Recent Posts With Thumbnails', 'recent-posts-widget-with-thumbnails' );
@@ -127,6 +127,7 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 		$show_date				= ( isset( $instance[ 'show_date' ] ) )				? (bool) $instance[ 'show_date' ]						: false;
 		$show_excerpt			= ( isset( $instance[ 'show_excerpt' ] ) )			? (bool) $instance[ 'show_excerpt' ]					: false;
 		$ignore_excerpt			= ( isset( $instance[ 'ignore_excerpt' ] ) )		? (bool) $instance[ 'ignore_excerpt' ]					: false;
+		$set_more_as_link		= ( isset( $instance[ 'set_more_as_link' ] ) )		? (bool) $instance[ 'set_more_as_link' ]				: false;
 		$show_thumb				= ( isset( $instance[ 'show_thumb' ] ) )			? (bool) $instance[ 'show_thumb' ]						: false;
 		$try_1st_img			= ( isset( $instance[ 'try_1st_img' ] ) )			? (bool) $instance[ 'try_1st_img' ]						: false;
 		$use_default			= ( isset( $instance[ 'use_default' ] ) )			? (bool) $instance[ 'use_default' ]						: false;
@@ -261,6 +262,7 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 		$instance[ 'show_date' ] 			= ( isset( $new_widget_settings[ 'show_date' ] ) )				? (bool) $new_widget_settings[ 'show_date' ]						: false;
 		$instance[ 'show_excerpt' ] 		= ( isset( $new_widget_settings[ 'show_excerpt' ] ) )			? (bool) $new_widget_settings[ 'show_excerpt' ]						: false;
 		$instance[ 'ignore_excerpt' ] 		= ( isset( $new_widget_settings[ 'ignore_excerpt' ] ) )			? (bool) $new_widget_settings[ 'ignore_excerpt' ]					: false;
+		$instance[ 'set_more_as_link' ] 	= ( isset( $new_widget_settings[ 'set_more_as_link' ] ) )		? (bool) $new_widget_settings[ 'set_more_as_link' ]					: false;
 		$instance[ 'show_thumb' ] 			= ( isset( $new_widget_settings[ 'show_thumb' ] ) )				? (bool) $new_widget_settings[ 'show_thumb' ]						: false;
 		$instance[ 'try_1st_img' ] 			= ( isset( $new_widget_settings[ 'try_1st_img' ] ) )			? (bool) $new_widget_settings[ 'try_1st_img' ]						: false;
 		$instance[ 'use_default' ] 			= ( isset( $new_widget_settings[ 'use_default' ] ) )			? (bool) $new_widget_settings[ 'use_default' ]						: false;
@@ -326,6 +328,7 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 		$show_date				= ( isset( $instance[ 'show_date' ] ) )				? (bool) $instance[ 'show_date' ]						: false;
 		$show_excerpt			= ( isset( $instance[ 'show_excerpt' ] ) )			? (bool) $instance[ 'show_excerpt' ]					: false;
 		$ignore_excerpt			= ( isset( $instance[ 'ignore_excerpt' ] ) )		? (bool) $instance[ 'ignore_excerpt' ]					: false;
+		$set_more_as_link		= ( isset( $instance[ 'set_more_as_link' ] ) )		? (bool) $instance[ 'set_more_as_link' ]				: false;
 		$show_thumb				= ( isset( $instance[ 'show_thumb' ] ) )			? (bool) $instance[ 'show_thumb' ]						: true;
 		$try_1st_img			= ( isset( $instance[ 'try_1st_img' ] ) )			? (bool) $instance[ 'try_1st_img' ]						: false;
 		$use_default			= ( isset( $instance[ 'use_default' ] ) )			? (bool) $instance[ 'use_default' ]						: false;
@@ -363,6 +366,7 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 		$id_default_url				= $this->get_field_id( 'default_url' );
 		$id_excerpt_length			= $this->get_field_id( 'excerpt_length' );
 		$id_excerpt_more			= $this->get_field_id( 'excerpt_more' );
+		$id_set_more_as_link		= $this->get_field_id( 'set_more_as_link' );
 		$id_hide_current_post		= $this->get_field_id( 'hide_current_post' );
 		$id_hide_title				= $this->get_field_id( 'hide_title' );
 		$id_keep_aspect_ratio 		= $this->get_field_id( 'keep_aspect_ratio' );
@@ -817,7 +821,7 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 	 *
 	 * @since 3.0
 	 */
-	private function get_the_trimmed_excerpt ( $excerpt_length = 55, $excerpt_more = ' [&hellip;]', $ignore_excerpt = false ) {
+	private function get_the_trimmed_excerpt ( $excerpt_length = 55, $excerpt_more = ' [&hellip;]', $ignore_excerpt = false, $set_more_as_link = false, $link_target = '' ) {
 		
 		$post = get_post();
 								
@@ -865,11 +869,13 @@ class Recent_Posts_Widget_With_Thumbnails extends WP_Widget {
 				
 			}
 			
-			#$excerpt = esc_html( $excerpt );
+			// append 'more' text, set 'more' signs as link if desired
+			if ( $set_more_as_link ) {
+				$excerpt .= sprintf( '<a href="%s"%s>%s</a>', get_the_permalink( $post ), $link_target, $excerpt_more );
+			} else {
+				$excerpt .= $excerpt_more;
+			}
 			
-			// append 'more' text
-			$excerpt .= $excerpt_more;
-
 		}
 		
 		// return text

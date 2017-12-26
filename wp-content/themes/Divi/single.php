@@ -26,7 +26,6 @@ $is_page_builder_used = et_pb_is_pagebuilder_used( get_the_ID() );
 		<?php endwhile;
 		else:
 	?>
-           <img src="http://remixtheearth.com/test/wp-content/uploads/2017/05/Untitled-1.jpg">
 	<div class="container">
 		<div id="content-area" class="clearfix">
 			<div id="left-area">
@@ -128,10 +127,8 @@ $is_page_builder_used = et_pb_is_pagebuilder_used( get_the_ID() );
 						wp_link_pages( array( 'before' => '<div class="page-links">' . esc_html__( 'Pages:', 'Divi' ), 'after' => '</div>' ) );
 					?>
 					</div> <!-- .entry-content -->
-
 					<div class="et_post_meta_wrapper">
 					<?php
-
 					if ( et_get_option('divi_468_enable') == 'on' ){
 						echo '<div class="et-single-post-ad">';
 						if ( et_get_option('divi_468_adsense') <> '' ) echo( et_get_option('divi_468_adsense') );
@@ -140,7 +137,6 @@ $is_page_builder_used = et_pb_is_pagebuilder_used( get_the_ID() );
 				<?php 	}
 						echo '</div> <!-- .et-single-post-ad -->';
 					}
-
 				?>
 
 					<?php if (et_get_option('divi_integration_single_bottom') <> '' && et_get_option('divi_integrate_singlebottom_enable') == 'on') echo(et_get_option('divi_integration_single_bottom')); ?>

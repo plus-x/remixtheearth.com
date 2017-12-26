@@ -1,6 +1,38 @@
 Changelog
 =========
 
+#### 4.1.12 - December 11, 2017
+
+**Fixes**
+
+- Ninja Forms double opt-in setting was incorrectly inversed.
+
+**Improvements**
+
+- Simplified form processing & notice logic.
+- Prevent 404 errors by proactively replacing lowercased `name="name"` input attributes.
+- Updated JavaScript dependencies.
+
+**Additions**
+
+- Integration for AffiliateWP.
+
+
+#### 4.1.11 - November 2, 2017
+
+**Fixes**
+
+- Filter out empty array values when overriding selected MailChimp lists via `_mc4wp_lists`. 
+
+**Improvements**
+
+- Updated JavaScript dependencies.
+
+**Additions**
+
+- Link to the [HTML Forms](https://www.htmlforms.io/) from the plugin settings pages.
+
+
 #### 4.1.10 - October 19, 2017
 
 **Improvements**

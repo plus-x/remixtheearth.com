@@ -3,15 +3,19 @@
  Plugin Name: WS Facebook Like Box Widget 
  Plugin URI: https://wordpress.org/plugins/ws-fecebook-likebox/
  Description: WS Facebook Like Box Widget provides easy and quick use in your blog. You can fully customize facebook like box in easy way.
- Version: 4.0                       
+ Version: 4.1                       
  Author: WebShouters                    
  Author URI: http://www.webshouters.com/      
  Text Domain: ws-facebook-likebox
  Domain Path: /languages/                                        
  License: GPL3                                                                                                                                     
- */                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-                                                                                                                                                                                                            
-define( 'WS_FB_LIKE_BOX_VERSION', '4.0' );
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
+define( 'WS_FB_LIKE_BOX_VERSION', '4.1' );
 define( 'WS_FB_LIKE_BOX_PLUGIN', __FILE__ );
 define( 'WS_FB_LIKE_BOX_PLUGIN_BASENAME', plugin_basename( WS_FB_LIKE_BOX_PLUGIN ) );
 define( 'WS_FB_LIKE_BOX_PLUGIN_NAME', trim( dirname( WS_FB_LIKE_BOX_PLUGIN_BASENAME ), '/' ) );
@@ -128,8 +132,6 @@ class WS_FACEBOOK_LIKEBOX extends WP_Widget {
     <?php
     }
 
-
-
 public function update( $new_instance, $old_instance ) {
         $instance                       = array();
         $instance['title']              = ( ! empty( $new_instance['title'] ) ) ? strip_tags( $new_instance['title'] ) : '';
@@ -145,7 +147,6 @@ public function update( $new_instance, $old_instance ) {
 		
         return $instance;
     }
-
 
 public function widget( $args, $instance ) {
 	
@@ -201,17 +202,14 @@ public function widget( $args, $instance ) {
         }
  
         echo $args['after_widget'];
-    }
-
-	
-		
+    }		
 }
 
 function ws_fb_likebox_load_plugin_textdomain() {
   load_plugin_textdomain( 'ws-facebook-likebox', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
 }
 
-// register widget
+/* register widget */
 function register_ws_fb_likebox_widget() {
     register_widget( 'WS_FACEBOOK_LIKEBOX' );
 }

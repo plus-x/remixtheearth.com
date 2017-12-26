@@ -43,6 +43,9 @@
 <p><label for="<?php echo $id_excerpt_more; ?>"><?php esc_html_e( 'Signs after excerpt', 'recent-posts-widget-with-thumbnails' ); ?>:</label>
 <input id="<?php echo $id_excerpt_more; ?>" name="<?php echo $this->get_field_name( 'excerpt_more' ); ?>" type="text" value="<?php echo esc_attr( $excerpt_more ); ?>" size="3" /></p>
 
+<p><input class="checkbox" type="checkbox" <?php checked( $set_more_as_link ); ?> id="<?php echo $id_set_more_as_link; ?>" name="<?php echo $this->get_field_name( 'set_more_as_link' ); ?>" />
+<label for="<?php echo $id_set_more_as_link; ?>"><?php esc_html_e( 'Set signs after excerpt as a link to the post?', 'recent-posts-widget-with-thumbnails' ); ?></label></p>
+
 <p><input class="checkbox" type="checkbox" <?php checked( $ignore_excerpt ); ?> id="<?php echo $id_ignore_excerpt; ?>" name="<?php echo $this->get_field_name( 'ignore_excerpt' ); ?>" />
 <label for="<?php echo $id_ignore_excerpt; ?>"><?php esc_html_e( 'Ignore post excerpt field as excerpt source?', 'recent-posts-widget-with-thumbnails' ); ?></label><br />
 <em><?php esc_html_e( 'Normally the widget takes the excerpt from the text of the excerpt field unchanged and if there is no text it creates the excerpt from the post content automatically. If this option is activated the excerpt is created from the post content only.', 'recent-posts-widget-with-thumbnails' );?></em></p>

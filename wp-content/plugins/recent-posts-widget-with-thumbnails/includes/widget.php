@@ -64,7 +64,7 @@
 				?><div class="rpwwt-post-date"><?php echo get_the_date(); ?></div><?php 
 			endif;
 			if ( $show_excerpt ) : 
-				?><div class="rpwwt-post-excerpt"><?php echo $this->get_the_trimmed_excerpt( $excerpt_length, $excerpt_more, $ignore_excerpt ); ?></div><?php 
+				?><div class="rpwwt-post-excerpt"><?php echo $this->get_the_trimmed_excerpt( $excerpt_length, $excerpt_more, $ignore_excerpt, $set_more_as_link, $link_target ); ?></div><?php 
 			endif;
 			if ( $show_comments_number ) : 
 				?><div class="rpwwt-post-comments-number"><?php echo get_comments_number_text(); ?></div><?php 
