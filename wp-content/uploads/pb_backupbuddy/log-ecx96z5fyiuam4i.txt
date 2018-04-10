@@ -1,0 +1,2 @@
+[Mar 28, 2018 05:12:03 0-error] [x5k4fkeo4p] Error #4001: Unable to successfully generate ZIP archive. Backup FAILED. See logs above for more information.
+[Mar 28, 2018 05:12:03 0-error] [x5k4fkeo4p] Failed function `backup_zip_files`. Backup terminated.

@@ -120,13 +120,16 @@ function et_fb_enqueue_assets() {
 
 	wp_register_script( 'wp-shortcode', includes_url() . 'js/shortcode.js', array(), $wp_version );
 
-	$fb_bundle_dependencies = apply_filters( 'et_fb_bundle_dependencies', array(
+	wp_register_script( 'jquery-tablesorter', ET_BUILDER_URI . '/scripts/ext/jquery.tablesorter.min.js', array( 'jquery' ), ET_BUILDER_VERSION, true );
+
+	wp_register_script( 'chart', ET_BUILDER_URI . '/scripts/ext/chart.min.js', array(), ET_BUILDER_VERSION, true );
+
+	$dependencies_list = array(
 		'jquery',
 		'jquery-ui-core',
 		'jquery-ui-draggable',
 		'jquery-ui-resizable',
 		'underscore',
-		// 'minicolors',
 		'jquery-ui-sortable',
 		'jquery-effects-core',
 		'iris',
@@ -137,8 +140,16 @@ function et_fb_enqueue_assets() {
 		'wp-shortcode',
 		'heartbeat',
 		'wp-mediaelement',
-		'et-shortcodes-js',
-	) );
+		'jquery-tablesorter',
+		'chart',
+	);
+
+	// Add dependency on et-shortcode-js only if Divi Theme is used or ET Shortcodes plugin activated
+	if ( ! et_is_builder_plugin_active() || et_is_shortcodes_plugin_active() ) {
+		$dependencies_list[] = 'et-shortcodes-js';
+	}
+
+	$fb_bundle_dependencies = apply_filters( 'et_fb_bundle_dependencies', $dependencies_list );
 
 	// Adding concatenated script as dependencies for script debugging
 	if ( et_load_unminified_scripts() ) {
@@ -163,12 +174,23 @@ function et_fb_enqueue_assets() {
 		// Add the bundle as fallback in case webpack-dev-server is not running
 		wp_add_inline_script(
 			'et-frontend-builder',
-			sprintf( 'window.ET_FB || document.write(\'<script src="%s">\x3C/script>\')', $bundle ),
+			sprintf( 'window.ET_FB || document.write(\'<script src="%s">\x3C/script>\')', "$bundle?ver={$ver}" ),
 			'after'
 		);
 	} else {
 		wp_enqueue_script( 'et-frontend-builder', $bundle, $fb_bundle_dependencies, $ver, true );
 	}
+
+	// Search for additional bundles
+	$additional_bundles = array();
+	foreach ( glob( ET_BUILDER_DIR . 'frontend-builder/bundle.*.js' ) as $chunk ) {
+		$additional_bundles[] = "{$app}/" . basename( $chunk );
+	}
+	// Pass bundle path and additional bundles to preload
+	wp_localize_script( 'et-frontend-builder', 'et_webpack_bundle', array(
+		'path'    => "{$app}/",
+		'preload' => $additional_bundles,
+	));
 
 	// Enqueue failure notice script.
 	wp_enqueue_script( 'et-frontend-builder-failure', "{$assets}/scripts/failure_notice.js", array(), $ver, true );

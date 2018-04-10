@@ -1,2 +1,7 @@
+wp-content/plugins
+wp-content/cache
+wp-content/*backup*
+wp-contnt/managewp
+wp-content/mu-plugins
 wp-content/codeguard_backups
 wp-content/updraft
