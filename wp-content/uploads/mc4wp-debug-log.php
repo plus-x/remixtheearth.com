@@ -29,3 +29,6 @@
 [2018-02-20 09:02:50] ERROR: Form 608 > MailChimp API error: 400 Bad Request. Invalid Resource hdsf***@ma**.ru has signed up to a lot of lists very recently; we're not allowing more signups for now
 [2018-02-25 10:37:01] WARNING: Form 608 > john***********@ya****.com is already subscribed to the selected list(s)
 [2018-02-28 10:47:36] ERROR: Form 608 > MailChimp API error: 400 Bad Request. Invalid Resource hdsf***@ma**.ru has signed up to a lot of lists very recently; we're not allowing more signups for now
+[2018-04-21 07:27:21] ERROR: Form 608 > MailChimp API error: 400 Bad Request. Invalid Resource. j.es*****************@gm***.com has signed up to a lot of lists very recently; we're not allowing more signups for now
+Request: PUT https://us3.api.mailchimp.com/3.0/lists/b3f3c53fa9/members/0ab0608f98cbcb3d38a9284e25e9d676 - {"email_address":"j.es*****************@gm***.com","interests":{},"merge_fields":{"FNAME":"JamesDaf"},"status":"subscribed","email_type":"html","ip_signup":"194.28.51.189"}
+Response: 400 Bad Request - {"type":"http://developer.mailchimp.com/documentation/mailchimp/guides/error-glossary/","title":"Invalid Resource","status":400,"detail":"j.es*****************@gm***.com has signed up to a lot of lists very recently; we're not allowing more signups for now","instance":"a2582ca8-fc3b-4a00-8d9e-2f0b61dbca1c"}
