@@ -5683,3 +5683,4 @@
 [27-Apr-2018 05:14:53 America/Chicago] PHP Deprecated:  Automatically populating $HTTP_RAW_POST_DATA is deprecated and will be removed in a future version. To avoid this warning set 'always_populate_raw_post_data' to '-1' in php.ini and use the php://input stream instead. in Unknown on line 0
 [27-Apr-2018 05:14:54 America/Chicago] PHP Deprecated:  Automatically populating $HTTP_RAW_POST_DATA is deprecated and will be removed in a future version. To avoid this warning set 'always_populate_raw_post_data' to '-1' in php.ini and use the php://input stream instead. in Unknown on line 0
 [27-Apr-2018 14:19:20 UTC] PHP Warning:  trim() expects parameter 1 to be string, array given in /home3/mauibeats/remixtheearth.com/wp-includes/class-wp-query.php on line 736
+[28-Apr-2018 00:15:07 UTC] PHP Warning:  trim() expects parameter 1 to be string, array given in /home3/mauibeats/remixtheearth.com/wp-includes/class-wp-query.php on line 736
